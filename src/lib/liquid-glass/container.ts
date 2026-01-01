@@ -139,7 +139,7 @@ class Container {
             child.parent = undefined;
 
             // Only remove if it's a direct child of this container
-            if (child.element && child.element.parentNode === this.element) {
+            if (child.element && this.element && child.element.parentNode === this.element) {
                 this.element.removeChild(child.element);
             }
 
