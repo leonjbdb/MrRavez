@@ -1,183 +1,150 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
-import { motion, useScroll, useTransform, useMotionValueEvent } from "framer-motion";
-import { siteConfig } from "@/config/site.config";
-import { ThemeToggle, HeroCard, WelcomeCard, LinksCard, ContactCard } from "@/components";
-import { Canvas } from "@react-three/fiber";
-import { View, Environment } from "@react-three/drei";
-import { Orbs } from "@/components/scene/Orbs";
-import { RealGlassProvider } from "@/components/providers/RealGlassProvider";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { ThemeToggle } from "@/components";
+import { useTheme } from "@/components/providers";
+import { OrbField } from "@/components/OrbField";
 
 export default function HomePage() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-  });
+    const [ready, setReady] = useState(false);
+    const [stage, setStage] = useState(0);
+    const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
+    const rafRef = useRef<number>();
+    const { theme } = useTheme();
 
-  // Visibility state for dynamic unmounting (performance & strict isolation)
-  const [visibleSections, setVisibleSections] = useState({
-    hero: true,
-    welcome: false,
-    links: false,
-    contact: false,
-  });
+    const handleMouseMove = useCallback((e: MouseEvent) => {
+        if (rafRef.current) return;
+        rafRef.current = requestAnimationFrame(() => {
+            setMousePos({
+                x: e.clientX / window.innerWidth,
+                y: e.clientY / window.innerHeight,
+            });
+            rafRef.current = undefined;
+        });
+    }, []);
 
-  // Auto-scroll state
-  const [isAutoScrolling, setIsAutoScrolling] = useState(false);
-  const autoScrollRef = useRef<number | null>(null);
-  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+    useEffect(() => {
+        setReady(true);
 
-  // Footer visibility
-  const [footerVisible, setFooterVisible] = useState(false);
+        const timer1 = setTimeout(() => setStage(1), 1500);
+        const timer2 = setTimeout(() => setStage(2), 6000);
+        const timer3 = setTimeout(() => setStage(3), 7500);
 
-  // Track visibility with slight overlap for smooth crossfades
-  useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    const newVisible = {
-      hero: latest < 0.16, // Ends at 0.15
-      welcome: latest > 0.13 && latest < 0.49, // Starts 0.14, Ends 0.48
-      links: latest > 0.49 && latest < 0.74, // Starts 0.50, Ends 0.73
-      contact: latest > 0.74, // Starts 0.75
-    };
+        window.addEventListener('mousemove', handleMouseMove);
 
-    if (
-      newVisible.hero !== visibleSections.hero ||
-      newVisible.welcome !== visibleSections.welcome ||
-      newVisible.links !== visibleSections.links ||
-      newVisible.contact !== visibleSections.contact
-    ) {
-      setVisibleSections(newVisible);
+        return () => {
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+            clearTimeout(timer3);
+            window.removeEventListener('mousemove', handleMouseMove);
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        };
+    }, [handleMouseMove]);
+
+    if (!ready) {
+        return (
+            <div style={{
+                position: 'fixed',
+                inset: 0,
+                background: '#000000',
+                zIndex: 9999
+            }} />
+        );
     }
 
-    setFooterVisible(latest > 0.92);
+    return (
+        <>
+            <style jsx global>{`
+                html, body {
+                    background: #000000 !important;
+                }
+            `}</style>
 
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    if (autoScrollRef.current) {
-      cancelAnimationFrame(autoScrollRef.current);
-      setIsAutoScrolling(false);
-    }
-    if (latest < 0.98) {
-      idleTimerRef.current = setTimeout(startAutoScroll, 4000);
-    }
-  });
+            <style jsx>{`
+                .homepage {
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: fixed;
+                    inset: 0;
+                    background: #000000;
+                    transition: background 0.8s ease;
+                }
+                
+                .homepage.popped {
+                    background: ${theme === 'light' ? '#e8e4e0' : '#000000'};
+                }
+                
+                .greeting {
+                    font-size: clamp(5rem, 20vw, 14rem);
+                    font-weight: 700;
+                    letter-spacing: -0.04em;
+                    color: #000000;
+                    opacity: 1;
+                    transform: scale(0.7);
+                    transition: 
+                        color 8s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 10s cubic-bezier(0.16, 1, 0.3, 1),
+                        text-shadow 5s ease 3s;
+                    position: relative;
+                    z-index: 10;
+                    visibility: hidden;
+                }
+                
+                .greeting.emerging {
+                    visibility: visible;
+                    color: #888888;
+                    transform: scale(0.9);
+                    text-shadow: 
+                        0 0 60px rgba(78, 5, 6, 0.4),
+                        0 0 120px rgba(78, 5, 6, 0.2);
+                }
+                
+                .greeting.popped {
+                    color: ${theme === 'light' ? '#1a1a1a' : '#ffffff'};
+                    transform: scale(1);
+                    transition: 
+                        color 0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        text-shadow 0.5s ease;
+                    text-shadow: 
+                        0 0 100px rgba(78, 5, 6, 0.8),
+                        0 0 200px rgba(78, 5, 6, 0.4),
+                        0 0 300px rgba(78, 5, 6, 0.2);
+                }
+                
+                .theme-toggle-wrapper {
+                    opacity: 0;
+                    visibility: hidden;
+                    transition: opacity 0.5s ease;
+                    pointer-events: none;
+                    position: relative;
+                    z-index: 100;
+                }
+                
+                .theme-toggle-wrapper.visible {
+                    visibility: visible;
+                    opacity: 1;
+                    pointer-events: auto;
+                }
+            `}</style>
 
-  const startAutoScroll = () => {
-    setIsAutoScrolling(true);
-    const scrollSpeed = 0.5;
+            <main className={`homepage ${stage >= 2 ? 'popped' : ''}`}>
+                <OrbField
+                    visible={stage >= 2}
+                    mouseX={mousePos.x}
+                    mouseY={mousePos.y}
+                />
 
-    const scroll = () => {
-      if (window.scrollY < document.body.scrollHeight - window.innerHeight - 10) {
-        window.scrollBy(0, scrollSpeed);
-        autoScrollRef.current = requestAnimationFrame(scroll);
-      } else {
-        setIsAutoScrolling(false);
-      }
-    };
-    autoScrollRef.current = requestAnimationFrame(scroll);
-  };
+                <div className={`theme-toggle-wrapper ${stage >= 3 ? 'visible' : ''}`}>
+                    <ThemeToggle />
+                </div>
 
-  useEffect(() => {
-    idleTimerRef.current = setTimeout(startAutoScroll, 4000);
-    return () => {
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-      if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current);
-    };
-  }, []);
-
-  // --- Animation Transforms ---
-  const hiOpacity = useTransform(scrollYProgress, [0.03, 0.06, 0.12, 0.15], [0, 1, 1, 0]);
-  const hiScale = useTransform(scrollYProgress, [0.03, 0.06, 0.12, 0.15], [0.9, 1, 1, 0.95]);
-  const hiRotateX = useTransform(scrollYProgress, [0.03, 0.06, 0.12, 0.15], [-10, 0, 0, 10]);
-  const hiY = useTransform(scrollYProgress, [0.03, 0.06, 0.12, 0.15], [40, 0, 0, -30]);
-
-  const welcomeOpacity = useTransform(scrollYProgress, [0.14, 0.17, 0.44, 0.48], [0, 1, 1, 0]);
-  const welcomeScale = useTransform(scrollYProgress, [0.14, 0.17, 0.44, 0.48], [0.9, 1, 1, 0.95]);
-  const welcomeRotateX = useTransform(scrollYProgress, [0.14, 0.17, 0.44, 0.48], [-10, 0, 0, 10]);
-  const welcomeY = useTransform(scrollYProgress, [0.14, 0.17, 0.44, 0.48], [40, 0, 0, -30]);
-
-  const linksOpacity = useTransform(scrollYProgress, [0.50, 0.53, 0.70, 0.73], [0, 1, 1, 0]);
-  const linksScale = useTransform(scrollYProgress, [0.50, 0.53, 0.70, 0.73], [0.9, 1, 1, 0.95]);
-  const linksRotateX = useTransform(scrollYProgress, [0.50, 0.53, 0.70, 0.73], [-10, 0, 0, 10]);
-  const linksY = useTransform(scrollYProgress, [0.50, 0.53, 0.70, 0.73], [40, 0, 0, -30]);
-
-  const contactOpacity = useTransform(scrollYProgress, [0.75, 0.78, 0.95, 0.98], [0, 1, 1, 0.8]);
-  const contactScale = useTransform(scrollYProgress, [0.75, 0.78, 0.95], [0.9, 1, 1]);
-  const contactRotateX = useTransform(scrollYProgress, [0.75, 0.78, 0.95], [-10, 0, 0]);
-  const contactY = useTransform(scrollYProgress, [0.75, 0.78], [40, 0]);
-
-  const cardStyle = {
-    position: "absolute" as const,
-    left: 0,
-    right: 0,
-    marginLeft: "auto",
-    marginRight: "auto",
-    width: "100%",
-    maxWidth: 520,
-    display: "flex",
-    justifyContent: "center",
-    zIndex: 10,
-  };
-
-  return (
-    <RealGlassProvider>
-      <div ref={scrollContainerRef} className="relative w-full h-full">
-        <div className="background">
-          {/* CSS Orbs replaced by R3F Orbs */}
-        </div>
-
-        <ThemeToggle />
-
-        <div ref={containerRef} className="scroll-container">
-          <div className="sticky-viewport">
-
-            {visibleSections.hero && (
-              <motion.div style={{ ...cardStyle, opacity: hiOpacity, scale: hiScale, rotateX: hiRotateX, y: hiY }}>
-                <HeroCard />
-              </motion.div>
-            )}
-
-            {visibleSections.welcome && (
-              <motion.div style={{ ...cardStyle, opacity: welcomeOpacity, scale: welcomeScale, y: welcomeY }}>
-                <WelcomeCard scrollYProgress={scrollYProgress} rotateX={welcomeRotateX} />
-              </motion.div>
-            )}
-
-            {visibleSections.links && (
-              <motion.div style={{ ...cardStyle, opacity: linksOpacity, scale: linksScale, y: linksY }}>
-                <LinksCard scrollYProgress={scrollYProgress} rotateX={linksRotateX} />
-              </motion.div>
-            )}
-
-            {visibleSections.contact && (
-              <motion.div style={{ ...cardStyle, opacity: contactOpacity, scale: contactScale, y: contactY }}>
-                <ContactCard scrollYProgress={scrollYProgress} rotateX={contactRotateX} />
-              </motion.div>
-            )}
-
-          </div>
-        </div>
-
-        <footer className={`footer ${footerVisible ? "footer--visible" : ""}`}>
-          <p>{siteConfig.footer.copyright}</p>
-        </footer>
-
-        {/* R3F Overlay for Glass and Orbs */}
-        <Canvas
-          className="pointer-events-none fixed inset-0"
-          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }}
-          eventSource={scrollContainerRef as any}
-          camera={{ position: [0, 0, 5], fov: 50 }}
-          gl={{ preserveDrawingBuffer: true }}
-        >
-          <View.Port />
-          {/* Global Scene Elements */}
-          <ambientLight intensity={0.5} />
-          <Environment preset="city" />
-          <Orbs />
-        </Canvas>
-      </div>
-    </RealGlassProvider>
-  );
+                <h1 className={`greeting ${stage >= 1 ? 'emerging' : ''} ${stage >= 2 ? 'popped' : ''}`}>
+                    Hi!
+                </h1>
+            </main>
+        </>
+    );
 }

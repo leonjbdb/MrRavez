@@ -1,6 +1,5 @@
 "use client";
 
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import {
     createContext,
     useContext,
@@ -8,34 +7,6 @@ import {
     useState,
     type ReactNode,
 } from "react";
-
-// ============================================================================
-// Query Client
-// ============================================================================
-
-function makeQueryClient() {
-    return new QueryClient({
-        defaultOptions: {
-            queries: {
-                staleTime: 1000 * 60 * 60,
-                gcTime: 1000 * 60 * 60 * 24,
-                retry: 1,
-            },
-        },
-    });
-}
-
-let browserQueryClient: QueryClient | undefined = undefined;
-
-function getQueryClient() {
-    if (typeof window === "undefined") {
-        return makeQueryClient();
-    }
-    if (!browserQueryClient) {
-        browserQueryClient = makeQueryClient();
-    }
-    return browserQueryClient;
-}
 
 // ============================================================================
 // Theme Context
@@ -60,7 +31,7 @@ export function useTheme() {
 }
 
 // ============================================================================
-// Providers Component - All providers in one place
+// Providers Component - Theme provider
 // ============================================================================
 
 type ProvidersProps = {
@@ -68,7 +39,6 @@ type ProvidersProps = {
 };
 
 export function Providers({ children }: ProvidersProps) {
-    const queryClient = getQueryClient();
     const [theme, setThemeState] = useState<Theme>("dark");
     const [mounted, setMounted] = useState(false);
 
@@ -97,10 +67,8 @@ export function Providers({ children }: ProvidersProps) {
     };
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
-                {children}
-            </ThemeContext.Provider>
-        </QueryClientProvider>
+        <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+            {children}
+        </ThemeContext.Provider>
     );
 }

@@ -1,10 +1,13 @@
 "use client";
 
 import { ContactCard, LinksCard, ProfileCard } from "@/components/liquid-glass";
+import { ThemeToggle } from "@/components";
 
 export default function LiquidGlassPage() {
     return (
         <main className="min-h-screen w-full relative overflow-hidden" style={{ background: '#020c1b', fontFamily: 'var(--font-mono)' }}>
+            <ThemeToggle />
+
             {/* Contact Card */}
             <ContactCard />
 
