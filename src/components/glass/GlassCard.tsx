@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, ReactNode, useState, useEffect } from "react";
+import { useDeviceOrientationDelta } from "@/hooks/useDeviceOrientationDelta";
 
 interface GlassCardProps {
     children?: ReactNode;
@@ -53,8 +54,40 @@ export function GlassCard({
     const cardRef = useRef<HTMLDivElement>(null);
     const [transform, setTransform] = useState("rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)");
     const [isHovering, setIsHovering] = useState(false);
-
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
+    
+    // Device orientation for mobile tilt
+    const { rotateX: deviceRotateX, rotateY: deviceRotateY, isAvailable: hasDeviceOrientation } = useDeviceOrientationDelta();
+    
+    // Detect touch-primary devices (mobile/tablet)
     useEffect(() => {
+        const checkTouchDevice = () => {
+            // (hover: none) means the primary input cannot hover (touch devices)
+            const isTouch = window.matchMedia('(hover: none)').matches;
+            setIsTouchDevice(isTouch);
+        };
+        
+        checkTouchDevice();
+        
+        // Listen for changes (e.g., connecting a mouse to tablet)
+        const mediaQuery = window.matchMedia('(hover: none)');
+        mediaQuery.addEventListener('change', checkTouchDevice);
+        
+        return () => {
+            mediaQuery.removeEventListener('change', checkTouchDevice);
+        };
+    }, []);
+    
+    // Compute mobile tilt transform directly (device orientation is external system sync)
+    const mobileTiltTransform = isTouchDevice && hasDeviceOrientation
+        ? `rotateX(${deviceRotateX}deg) rotateY(${deviceRotateY}deg) scale3d(1, 1, 1)`
+        : null;
+
+    // Desktop: Mouse-based tilt on hover
+    useEffect(() => {
+        // Skip mouse handling on touch devices
+        if (isTouchDevice) return;
+        
         const card = cardRef.current;
         if (!card) return;
 
@@ -104,7 +137,7 @@ export function GlassCard({
             card.removeEventListener("mouseleave", handleMouseLeave);
             if (animationId) cancelAnimationFrame(animationId);
         };
-    }, [isHovering]);
+    }, [isHovering, isTouchDevice]);
 
     const paddingValue = typeof padding === "number" ? `${padding}px` : padding;
     const mobilePaddingValue = mobilePadding 
@@ -212,10 +245,12 @@ export function GlassCard({
                 style={{
                     position: "relative",
                     borderRadius,
-                    transform,
-                    transition: isHovering
-                        ? "transform 0.05s ease-out"
-                        : "transform 0.5s ease-out",
+                    transform: mobileTiltTransform ?? transform,
+                    transition: isTouchDevice
+                        ? "transform 0.1s ease-out"  // Slightly longer for smooth device orientation
+                        : isHovering
+                            ? "transform 0.05s ease-out"
+                            : "transform 0.5s ease-out",
                     transformStyle: "preserve-3d",
                 }}
             >
