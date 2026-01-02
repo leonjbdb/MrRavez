@@ -10,10 +10,11 @@ interface ProfileCardLiveProps {
     entryProgress?: number;
     exitProgress?: number;
     mobileOffset?: number;
+    mobileScale?: number;
     style?: React.CSSProperties;
 }
 
-export function ProfileCardLive({ opacity = 1, entryProgress = 1, exitProgress = 0, mobileOffset = 0, style }: ProfileCardLiveProps) {
+export function ProfileCardLive({ opacity = 1, entryProgress = 1, exitProgress = 0, mobileOffset = 0, mobileScale = 1, style }: ProfileCardLiveProps) {
     const { data: avatarUrl } = useGitHubAvatar(siteConfig.identity.githubUserId, 260);
 
     return (
@@ -22,7 +23,6 @@ export function ProfileCardLive({ opacity = 1, entryProgress = 1, exitProgress =
                 position: "fixed",
                 top: "50%",
                 left: "50%",
-                transform: "translate(-50%, -50%)",
                 zIndex: 10,
                 maxWidth: "480px",
                 width: "calc(100% - 32px)",
@@ -34,6 +34,7 @@ export function ProfileCardLive({ opacity = 1, entryProgress = 1, exitProgress =
             entryProgress={entryProgress}
             exitProgress={exitProgress}
             mobileOffset={mobileOffset}
+            mobileScale={mobileScale}
         >
             <style dangerouslySetInnerHTML={{
                 __html: `

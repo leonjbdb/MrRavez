@@ -15,6 +15,8 @@ interface LiveGlassCardProps {
     exitProgress?: number;
     /** Mobile horizontal offset in vw units for swipe animation */
     mobileOffset?: number;
+    /** Mobile scale for carousel effect (0.85-1.0) */
+    mobileScale?: number;
 }
 
 export function LiveGlassCard({
@@ -27,6 +29,7 @@ export function LiveGlassCard({
     entryProgress = 1,
     exitProgress = 0,
     mobileOffset = 0,
+    mobileScale = 1,
 }: LiveGlassCardProps) {
     const cardRef = useRef<HTMLDivElement>(null);
     const [transform, setTransform] = useState("rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)");
@@ -118,10 +121,23 @@ export function LiveGlassCard({
     const exitTranslateY = -40 * easedExit;
     const exitRotateX = 6 * easedExit;
 
-    // Combine entry and exit animations
-    const finalScale = entryScale * exitScale;
+    // Combine entry and exit animations with mobile scale
+    const baseScale = entryScale * exitScale;
+    const finalScale = baseScale * mobileScale; // Apply mobile carousel scale
     const finalTranslateY = entryTranslateY + exitTranslateY;
     const finalRotateX = entryRotateX + exitRotateX;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { transform: _, ...styleWithoutTransform } = style || {};
+    
+    // Build optimized 3D transform for GPU compositing
+    // translate3d triggers GPU layer promotion for smoother animations
+    // Order: centering -> mobile offset -> vertical animation -> scale -> rotation
+    const combinedTransform = `
+        translate3d(calc(-50% + ${mobileOffset}vw), calc(-50% + ${finalTranslateY}px), 0)
+        scale3d(${finalScale}, ${finalScale}, 1)
+        rotateX(${finalRotateX}deg)
+    `.replace(/\s+/g, ' ').trim();
 
     return (
         <div
@@ -132,12 +148,14 @@ export function LiveGlassCard({
                 perspective: "1200px",
                 transformStyle: "preserve-3d",
                 willChange: "transform, opacity",
+                backfaceVisibility: "hidden",
+                WebkitBackfaceVisibility: "hidden",
                 opacity: opacity,
                 visibility: isVisible ? "visible" : "hidden",
                 pointerEvents: opacity > 0.01 ? "auto" : "none",
                 transition: "opacity 0.4s ease-in-out",
-                transform: `translateX(${mobileOffset}vw) translateY(${finalTranslateY}px) scale(${finalScale}) rotateX(${finalRotateX}deg)`,
-                ...style,
+                transform: combinedTransform,
+                ...styleWithoutTransform,
             }}
         >
             {/* Glass container with 3D tilt */}

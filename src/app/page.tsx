@@ -191,7 +191,7 @@ export default function HomePage() {
         }, SNAP_DELAY);
     }, [hasPassedGreeting, findNearestRestingPoint, scrollToRestingPoint, isMobile, updateActiveSection]);
 
-    // Animate to a mobile section with parabolic snap
+    // Animate to a mobile section with smooth parabolic snap
     const snapToMobileSection = useCallback((targetSection: number, fromProgress?: number) => {
         if (isSnappingRef.current) return;
         
@@ -210,22 +210,29 @@ export default function HomePage() {
         isSnappingRef.current = true;
         const startTime = performance.now();
         
-        // Duration based on distance - shorter for mobile but still natural
-        const duration = Math.min(400, Math.max(200, Math.abs(distance) * 400));
+        // Duration based on distance - smooth but responsive
+        const duration = Math.min(350, Math.max(180, Math.abs(distance) * 350));
+        
+        // Use local variable to track progress without causing re-renders every frame
+        let lastRenderedProgress = startProgress;
         
         const animate = (currentTime: number) => {
             const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
+            const t = Math.min(elapsed / duration, 1);
             
-            // Parabolic easing (ease-in-out quint) for natural motion
-            const eased = progress < 0.5
-                ? 16 * progress * progress * progress * progress * progress
-                : 1 - Math.pow(-2 * progress + 2, 5) / 2;
+            // Smooth ease-out cubic for natural deceleration
+            const eased = 1 - Math.pow(1 - t, 3);
             
             const newProgress = startProgress + distance * eased;
-            setScrollProgress(newProgress);
             
-            if (progress < 1) {
+            // Only update state if the change is significant enough to be visible
+            // This reduces React re-renders and prevents jittering
+            if (Math.abs(newProgress - lastRenderedProgress) > 0.005 || t >= 1) {
+                lastRenderedProgress = newProgress;
+                setScrollProgress(t >= 1 ? targetProgress : newProgress);
+            }
+            
+            if (t < 1) {
                 requestAnimationFrame(animate);
             } else {
                 setScrollProgress(targetProgress);
@@ -499,6 +506,18 @@ export default function HomePage() {
     const linksOffset = isMobile ? (scrollProgress - RESTING_POINTS[1]) * -mobileOffsetMultiplier : 0;
     const contactOffset = isMobile ? (scrollProgress - RESTING_POINTS[2]) * -mobileOffsetMultiplier : 0;
 
+    // Mobile scale for carousel/circle effect - cards are larger when centered
+    // Scale from 0.85 (off-center) to 1.0 (centered)
+    const calculateMobileScale = (offset: number) => {
+        if (!isMobile) return 1;
+        const distance = Math.abs(offset) / 100; // Normalize to 0-1 range (100vw = 1)
+        const scale = 1 - (distance * 0.15); // Scale down by 15% max
+        return Math.max(0.85, Math.min(1, scale));
+    };
+    const profileMobileScale = calculateMobileScale(profileOffset);
+    const linksMobileScale = calculateMobileScale(linksOffset);
+    const contactMobileScale = calculateMobileScale(contactOffset);
+
     return (
         <>
             <style jsx global>{`
@@ -617,6 +636,7 @@ export default function HomePage() {
                     entryProgress={profileEntryProgress}
                     exitProgress={profileExitProgress}
                     mobileOffset={profileOffset}
+                    mobileScale={profileMobileScale}
                 />
 
                 {/* Links card with scroll-based fade in/out */}
@@ -625,6 +645,7 @@ export default function HomePage() {
                     entryProgress={linksEntryProgress}
                     exitProgress={linksExitProgress}
                     mobileOffset={linksOffset}
+                    mobileScale={linksMobileScale}
                 />
 
                 {/* Contact card with scroll-based fade in */}
@@ -632,6 +653,7 @@ export default function HomePage() {
                     opacity={stage >= 3 ? (isJumping ? 0 : contactOpacity) : 0}
                     entryProgress={contactEntryProgress}
                     mobileOffset={contactOffset}
+                    mobileScale={contactMobileScale}
                 />
 
                 {/* Dot navigation indicator - 3 sections: Profile, Links, Contact */}

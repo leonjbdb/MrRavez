@@ -16,17 +16,18 @@ function EmailIcon() {
 interface ContactCardLiveProps {
     opacity?: number;
     entryProgress?: number;
+    mobileOffset?: number;
+    mobileScale?: number;
     style?: React.CSSProperties;
 }
 
-export function ContactCardLive({ opacity = 1, entryProgress = 1, style }: ContactCardLiveProps) {
+export function ContactCardLive({ opacity = 1, entryProgress = 1, mobileOffset = 0, mobileScale = 1, style }: ContactCardLiveProps) {
     return (
         <LiveGlassCard
             style={{
                 position: "fixed",
                 top: "50%",
                 left: "50%",
-                transform: "translate(-50%, -50%)",
                 zIndex: 10,
                 maxWidth: "480px",
                 width: "calc(100% - 32px)",
@@ -36,6 +37,8 @@ export function ContactCardLive({ opacity = 1, entryProgress = 1, style }: Conta
             borderRadius={60}
             opacity={opacity}
             entryProgress={entryProgress}
+            mobileOffset={mobileOffset}
+            mobileScale={mobileScale}
         >
             <h2 style={{
                 margin: '0 0 8px 0',
