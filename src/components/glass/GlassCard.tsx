@@ -59,76 +59,28 @@ export function GlassCard({
     // Device orientation for mobile tilt (uses proven hook that works for orbs)
     const { tiltX, tiltY, hasPermission } = useDeviceOrientation();
     
-    // Store baseline orientation and computed tilt in state
-    const [mobileState, setMobileState] = useState<{
-        baseline: { tiltX: number; tiltY: number } | null;
-        rotateX: number;
-        rotateY: number;
-    }>({ baseline: null, rotateX: 0, rotateY: 0 });
-    
-    // Detect touch-primary devices (mobile/tablet)
+    // Detect touch-primary devices (mobile/tablet) - check on mount
     useEffect(() => {
-        const checkTouchDevice = () => {
-            // (hover: none) means the primary input cannot hover (touch devices)
-            const isTouch = window.matchMedia('(hover: none)').matches;
-            setIsTouchDevice(isTouch);
-        };
-        
-        checkTouchDevice();
-        
-        // Listen for changes (e.g., connecting a mouse to tablet)
-        const mediaQuery = window.matchMedia('(hover: none)');
-        mediaQuery.addEventListener('change', checkTouchDevice);
-        
-        return () => {
-            mediaQuery.removeEventListener('change', checkTouchDevice);
-        };
-    }, []);
+        const isTouch = window.matchMedia('(hover: none)').matches || 
+                       window.matchMedia('(pointer: coarse)').matches ||
+                       'ontouchstart' in window;
+        if (isTouch !== isTouchDevice) {
+            requestAnimationFrame(() => setIsTouchDevice(isTouch));
+        }
+    }, [isTouchDevice]);
     
-    // Calculate mobile tilt from device orientation using requestAnimationFrame
-    useEffect(() => {
-        if (!isTouchDevice || !hasPermission) return;
+    // Compute mobile tilt directly from device orientation
+    // tiltX/tiltY are 0-1 where 0.5 = neutral (device flat)
+    let mobileTiltTransform: string | null = null;
+    if (isTouchDevice && hasPermission) {
+        const maxTilt = 6; // Double the desktop max (3 degrees)
+        // Center the values: 0.5 becomes 0, range becomes -0.5 to 0.5
+        // Then scale to max rotation (0.5 * 2 * maxTilt = maxTilt at full tilt)
+        const rotateY = (tiltX - 0.5) * 2 * maxTilt;  // left-right
+        const rotateX = -(tiltY - 0.5) * 2 * maxTilt; // front-back (inverted for natural feel)
         
-        const animationId = requestAnimationFrame(() => {
-            setMobileState(prev => {
-                // Set baseline on first valid reading (current position = neutral)
-                let baseline = prev.baseline;
-                if (baseline === null && (tiltX !== 0.5 || tiltY !== 0.5)) {
-                    baseline = { tiltX, tiltY };
-                    return { baseline, rotateX: 0, rotateY: 0 };
-                }
-                
-                if (baseline === null) return prev;
-                
-                // Calculate delta from baseline (tiltX/Y are 0-1 normalized, 0.5 = neutral)
-                const deltaX = tiltX - baseline.tiltX;  // left-right
-                const deltaY = tiltY - baseline.tiltY;  // front-back
-                
-                // Convert to degrees: full range is 90 degrees (-45 to 45), so delta of 1.0 = 90 degrees
-                // Map to max 3 degrees for card tilt, inverted so card "stays in place"
-                const maxTilt = 3;
-                const sensitivity = 45; // degrees of device tilt to reach max card tilt
-                
-                const newRotateY = Math.max(-maxTilt, Math.min(maxTilt, (-deltaX * 90 / sensitivity) * maxTilt));
-                const newRotateX = Math.max(-maxTilt, Math.min(maxTilt, (deltaY * 90 / sensitivity) * maxTilt));
-                
-                // Only update if values changed significantly
-                if (Math.abs(newRotateX - prev.rotateX) > 0.01 ||
-                    Math.abs(newRotateY - prev.rotateY) > 0.01) {
-                    return { baseline, rotateX: newRotateX, rotateY: newRotateY };
-                }
-                
-                return prev;
-            });
-        });
-        
-        return () => cancelAnimationFrame(animationId);
-    }, [isTouchDevice, hasPermission, tiltX, tiltY]);
-    
-    // Compute mobile tilt transform
-    const mobileTiltTransform = isTouchDevice && hasPermission && mobileState.baseline
-        ? `rotateX(${mobileState.rotateX}deg) rotateY(${mobileState.rotateY}deg) scale3d(1, 1, 1)`
-        : null;
+        mobileTiltTransform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1, 1, 1)`;
+    }
 
     // Desktop: Mouse-based tilt on hover
     useEffect(() => {
