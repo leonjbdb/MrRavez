@@ -37,27 +37,40 @@ export function GlassButton({ icon, label, href, target, rel }: GlassButtonProps
         }, 50);
     }, []);
 
+    // Navigate with animation - used by both click and touch handlers on mobile
+    const navigateWithAnimation = useCallback(() => {
+        // Trigger pressed state to show animation
+        setIsPressed(true);
+        
+        // Navigate after animation plays
+        setTimeout(() => {
+            if (target === '_blank') {
+                window.open(href, target, rel ? `noopener,noreferrer` : undefined);
+            } else {
+                window.location.href = href;
+            }
+            // Reset pressed state after navigation starts
+            setTimeout(() => setIsPressed(false), 100);
+        }, 250); // Animation duration
+    }, [href, target, rel]);
+
     // Handle click with animation delay on mobile
     const handleClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-        // Check if mobile
+        // Check if mobile - prevent default and animate before navigating
         if (window.innerWidth < MOBILE_BREAKPOINT) {
             e.preventDefault();
-            
-            // Trigger pressed state to show animation
-            setIsPressed(true);
-            
-            // Navigate after animation plays
-            setTimeout(() => {
-                if (target === '_blank') {
-                    window.open(href, target, rel ? `noopener,noreferrer` : undefined);
-                } else {
-                    window.location.href = href;
-                }
-                // Reset pressed state after navigation starts
-                setTimeout(() => setIsPressed(false), 100);
-            }, 250); // Animation duration
+            navigateWithAnimation();
         }
-    }, [href, target, rel]);
+    }, [navigateWithAnimation]);
+
+    // Handle touch end for reliable mobile first-tap navigation
+    const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLAnchorElement>) => {
+        // Only handle on mobile
+        if (window.innerWidth < MOBILE_BREAKPOINT) {
+            e.preventDefault();
+            navigateWithAnimation();
+        }
+    }, [navigateWithAnimation]);
 
     return (
         <>
@@ -115,8 +128,7 @@ export function GlassButton({ icon, label, href, target, rel }: GlassButtonProps
                 onMouseLeave={handleMouseLeave}
                 style={{
                     position: 'relative',
-                    width: '100%',
-                    maxWidth: '420px',
+                    width: 'calc(100% + 16px)',
                     // Generous padding buffer to accommodate scale growth and prevent edge flickering
                     // Using 8px provides extra safety margin beyond the ~4px scale growth
                     padding: '8px',
@@ -131,6 +143,8 @@ export function GlassButton({ icon, label, href, target, rel }: GlassButtonProps
                     rel={rel}
                     className="glass-button-link"
                     onClick={handleClick}
+                    onTouchEnd={handleTouchEnd}
+                    onMouseDown={(e) => e.preventDefault()}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
                     style={{
