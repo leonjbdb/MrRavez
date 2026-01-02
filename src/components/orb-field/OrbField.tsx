@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import type { OrbFieldProps } from './types';
 import { generateAllOrbs } from './utils';
 import { useOrbPhysics } from './useOrbPhysics';
@@ -10,7 +10,6 @@ import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 export function OrbField({ visible, mouseX, mouseY }: OrbFieldProps) {
     const initialConfigs = useMemo(() => generateAllOrbs(), []);
     const { tiltX, tiltY } = useDeviceOrientation();
-    const [currentTime, setCurrentTime] = useState(0);
     
     const mousePosition = { x: mouseX, y: mouseY };
     const tilt = { x: tiltX, y: tiltY };
@@ -22,17 +21,6 @@ export function OrbField({ visible, mouseX, mouseY }: OrbFieldProps) {
         tilt,
         enabled: visible,
     });
-    
-    // Update current time for animations
-    useEffect(() => {
-        if (!visible) return;
-        
-        const interval = setInterval(() => {
-            setCurrentTime(performance.now());
-        }, 16);
-        
-        return () => clearInterval(interval);
-    }, [visible]);
 
     return (
         <div
@@ -44,6 +32,8 @@ export function OrbField({ visible, mouseX, mouseY }: OrbFieldProps) {
                 opacity: visible ? 1 : 0,
                 transform: visible ? 'scale(1)' : 'scale(0.8)',
                 transition: 'opacity 1.2s ease-out, transform 1.2s ease-out',
+                // Help browser optimize rendering
+                contain: 'layout style',
             }}
         >
             {configs.map(orb => {
@@ -57,7 +47,6 @@ export function OrbField({ visible, mouseX, mouseY }: OrbFieldProps) {
                         focalZ={focalZ}
                         tiltX={tiltX}
                         tiltY={tiltY}
-                        currentTime={currentTime}
                     />
                 );
             })}

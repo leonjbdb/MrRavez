@@ -1,3 +1,6 @@
+"use client";
+
+import { memo } from 'react';
 import type { OrbConfig, OrbState } from './types';
 import { calculateDepthEffects } from './utils';
 
@@ -7,10 +10,9 @@ interface SingleOrbProps {
     focalZ: number;
     tiltX: number;
     tiltY: number;
-    currentTime: number;
 }
 
-export function SingleOrb({ config, state, focalZ, tiltX, tiltY }: SingleOrbProps) {
+export const SingleOrb = memo(function SingleOrb({ config, state, focalZ, tiltX, tiltY }: SingleOrbProps) {
     const color = `hsl(${config.hue}, ${config.saturation}%, ${config.lightness}%)`;
     
     // Use lifecycle-based scale for smooth spawn/despawn
@@ -34,8 +36,8 @@ export function SingleOrb({ config, state, focalZ, tiltX, tiltY }: SingleOrbProp
     const displayX = state.x + (tiltX - 0.5) * parallaxStrength;
     const displayY = state.y + (tiltY - 0.5) * parallaxStrength;
     
-    // Glow effect for foreground orbs
-    const scaledGlow = glowIntensity * scale;
+    // Glow effect for foreground orbs - disable on low scale to reduce GPU work
+    const scaledGlow = scale > 0.5 ? glowIntensity * scale : 0;
     const glowColor = `hsla(${config.hue}, ${config.saturation}%, ${config.lightness + 20}%, ${scaledGlow})`;
     
     return (
@@ -52,13 +54,15 @@ export function SingleOrb({ config, state, focalZ, tiltX, tiltY }: SingleOrbProp
                 top: 0,
                 // Use transform for GPU-accelerated positioning (prevents mobile flickering)
                 transform: `translate3d(calc(${displayX}vw - 50%), calc(${displayY}vh - 50%), 0)`,
-                boxShadow: scaledGlow > 0 ? `0 0 ${scaledSize * 2}px ${glowColor}` : 'none',
+                boxShadow: scaledGlow > 0.1 ? `0 0 ${scaledSize * 2}px ${glowColor}` : 'none',
                 // Force GPU compositing layer for smooth rendering on mobile
                 backfaceVisibility: 'hidden',
+                // Isolate this element's rendering to prevent repaints affecting siblings
+                contain: 'strict',
                 pointerEvents: 'none',
             }}
         />
     );
-}
+});
 
 

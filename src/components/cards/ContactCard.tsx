@@ -35,7 +35,7 @@ export function ContactCard({ opacity = 1, entryProgress = 1, mobileOffset = 0, 
             padding="clamp(16px, 4vw, 30px)"
             borderRadius={60}
             mobileBorderRadius={40}
-            mobilePadding="10px"
+            mobilePadding="16px"
             opacity={opacity}
             entryProgress={entryProgress}
             mobileOffset={mobileOffset}
