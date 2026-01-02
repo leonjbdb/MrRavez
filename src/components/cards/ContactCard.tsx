@@ -34,6 +34,8 @@ export function ContactCard({ opacity = 1, entryProgress = 1, mobileOffset = 0, 
             }}
             padding="clamp(16px, 4vw, 30px)"
             borderRadius={60}
+            mobileBorderRadius={40}
+            mobilePadding="10px"
             opacity={opacity}
             entryProgress={entryProgress}
             mobileOffset={mobileOffset}
@@ -56,7 +58,7 @@ export function ContactCard({ opacity = 1, entryProgress = 1, mobileOffset = 0, 
                 gap: '16px',
                 transformStyle: 'preserve-3d'
             }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', transformStyle: 'preserve-3d' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', transformStyle: 'preserve-3d' }}>
                     <p style={{
                         margin: '0 0 8px 0',
                         fontSize: '13px',
@@ -68,13 +70,13 @@ export function ContactCard({ opacity = 1, entryProgress = 1, mobileOffset = 0, 
                         for personal or other inquiries:
                     </p>
                     <GlassButton 
-                        href={`mailto:${siteConfig.contact.email}`}
+                        href={`mailto:${siteConfig.contact.email_personal}`}
                         icon={<EmailIcon />}
-                        label={siteConfig.contact.email}
+                        label={siteConfig.contact.email_personal}
                     />
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', transformStyle: 'preserve-3d' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', transformStyle: 'preserve-3d' }}>
                     <p style={{
                         margin: '0 0 8px 0',
                         fontSize: '13px',
@@ -86,9 +88,9 @@ export function ContactCard({ opacity = 1, entryProgress = 1, mobileOffset = 0, 
                         for UiO related inquiries:
                     </p>
                     <GlassButton 
-                        href="mailto:l.j.b.de.backer@usit.uio.no"
+                        href={`mailto:${siteConfig.contact.email_work}`}
                         icon={<EmailIcon />}
-                        label="l.j.b.de.backer@usit.uio.no"
+                        label={siteConfig.contact.email_work}
                     />
                 </div>
             </div>

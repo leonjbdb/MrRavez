@@ -5,8 +5,9 @@
 export const siteConfig = {
     identity: {
         name: "Leon Joachim Buverud De Backer",
-        // GitHub user ID for avatar: https://avatars.githubusercontent.com/u/{USER_ID}
-        githubUserId: "226676348",
+		role: "Head Engineer",
+		division: "AV and IoT",
+		organization: "University of Oslo",
     },
 
     links: [
@@ -33,11 +34,8 @@ export const siteConfig = {
     ],
 
     contact: {
-        email: "contact@de-backer.no",
-    },
-
-    footer: {
-        copyright: `© ${new Date().getFullYear()} Leon Joachim Buverud De Backer`,
+        email_personal: "contact@de-backer.no",
+		email_work: "l.j.b.de.backer@usit.uio.no",
     },
 } as const;
 

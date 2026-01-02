@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, ReactNode, useState, useEffect } from "react";
+import { useRef, ReactNode, useState, useEffect, useId } from "react";
 
 interface GlassCardProps {
     children?: ReactNode;
@@ -17,6 +17,10 @@ interface GlassCardProps {
     mobileOffset?: number;
     /** Mobile scale for carousel effect (0.85-1.0) */
     mobileScale?: number;
+    /** Mobile-specific border radius (applied at max-width: 480px) */
+    mobileBorderRadius?: number;
+    /** Mobile-specific padding (applied at max-width: 480px) */
+    mobilePadding?: string | number;
 }
 
 export function GlassCard({
@@ -30,7 +34,10 @@ export function GlassCard({
     exitProgress = 0,
     mobileOffset = 0,
     mobileScale = 1,
+    mobileBorderRadius,
+    mobilePadding,
 }: GlassCardProps) {
+    const cardId = useId().replace(/:/g, '');
     const cardRef = useRef<HTMLDivElement>(null);
     const [transform, setTransform] = useState("rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)");
     const [isHovering, setIsHovering] = useState(false);
@@ -88,21 +95,35 @@ export function GlassCard({
     }, [isHovering]);
 
     const paddingValue = typeof padding === "number" ? `${padding}px` : padding;
+    const mobilePaddingValue = mobilePadding 
+        ? (typeof mobilePadding === "number" ? `${mobilePadding}px` : mobilePadding)
+        : paddingValue;
 
     // Track visibility - hide element shortly after opacity reaches 0
+    // Use ref to track delayed visibility state without triggering re-renders
     const [isVisible, setIsVisible] = useState(opacity > 0.01);
+    const visibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     
     useEffect(() => {
+        // Clear any pending timer
+        if (visibilityTimerRef.current) {
+            clearTimeout(visibilityTimerRef.current);
+            visibilityTimerRef.current = null;
+        }
+        
         if (opacity > 0.01) {
-            // Immediately show when opacity increases
-            setIsVisible(true);
+            // Immediately show when opacity increases - use timer with 0ms to avoid sync setState
+            visibilityTimerRef.current = setTimeout(() => setIsVisible(true), 0);
         } else {
             // Brief delay to ensure smooth transition completion
-            const timer = setTimeout(() => {
-                setIsVisible(false);
-            }, 100);
-            return () => clearTimeout(timer);
+            visibilityTimerRef.current = setTimeout(() => setIsVisible(false), 100);
         }
+        
+        return () => {
+            if (visibilityTimerRef.current) {
+                clearTimeout(visibilityTimerRef.current);
+            }
+        };
     }, [opacity]);
 
     // Custom easing function: cubic ease-out for natural motion
@@ -141,10 +162,24 @@ export function GlassCard({
         rotateX(${finalRotateX}deg)
     `.replace(/\s+/g, ' ').trim();
 
+    // Generate mobile CSS if mobile-specific values are provided
+    const hasMobileOverrides = mobileBorderRadius !== undefined || mobilePadding !== undefined;
+    const mobileStyles = hasMobileOverrides ? `
+        @media (max-width: 480px) {
+            .glass-card-${cardId} .glass-card-container,
+            .glass-card-${cardId} .glass-card-bg {
+                border-radius: ${mobileBorderRadius ?? borderRadius}px !important;
+            }
+            .glass-card-${cardId} .glass-card-content {
+                padding: ${mobilePaddingValue} !important;
+            }
+        }
+    ` : '';
+
     return (
         <div
             ref={cardRef}
-            className={className}
+            className={`glass-card-${cardId} ${className || ''}`}
             style={{
                 position: "relative",
                 perspective: "1200px",
@@ -160,8 +195,12 @@ export function GlassCard({
                 ...styleWithoutTransform,
             }}
         >
+            {hasMobileOverrides && (
+                <style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: mobileStyles }} />
+            )}
             {/* Glass container with 3D tilt */}
             <div
+                className="glass-card-container"
                 style={{
                     position: "relative",
                     borderRadius,
@@ -174,6 +213,7 @@ export function GlassCard({
             >
                 {/* Glass background with backdrop-filter */}
                 <div
+                    className="glass-card-bg"
                     style={{
                         position: "absolute",
                         inset: 0,
@@ -210,6 +250,7 @@ export function GlassCard({
 
                 {/* Content layer */}
                 <div
+                    className="glass-card-content"
                     style={{
                         position: "relative",
                         zIndex: 1,

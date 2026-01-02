@@ -160,10 +160,10 @@ export function ProfileCard({ opacity = 1, entryProgress = 1, exitProgress = 0, 
 
                 <div className="about-info">
                     <p className="about-role">
-                        Head Engineer — AV and IoT
+                        {siteConfig.identity.role} — {siteConfig.identity.division}
                     </p>
                     <p className="about-org">
-                        University of Oslo
+                        {siteConfig.identity.organization}
                     </p>
                 </div>
             </div>

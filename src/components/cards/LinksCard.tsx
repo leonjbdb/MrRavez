@@ -76,6 +76,8 @@ export function LinksCard({ opacity = 1, entryProgress = 1, exitProgress = 0, mo
             }}
             padding="clamp(16px, 4vw, 30px)"
             borderRadius={60}
+            mobileBorderRadius={40}
+            mobilePadding="10px"
             opacity={opacity}
             entryProgress={entryProgress}
             exitProgress={exitProgress}
