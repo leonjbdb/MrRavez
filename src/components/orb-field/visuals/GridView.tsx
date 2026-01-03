@@ -20,6 +20,9 @@ import {
 import { GridRenderer } from './GridRenderer';
 import { GridAnimator } from './GridAnimator';
 
+/** Global debug flag based on environment variable. */
+const IS_DEBUG_MODE = process.env.NEXT_PUBLIC_DEBUG_MODE === 'true';
+
 interface GridViewProps {
 	/** Visibility toggle for the entire grid system. */
 	visible?: boolean;
@@ -59,10 +62,14 @@ export function GridView({
 	const rollProgressRef = useRef(0);
 	const hasAnimatedRef = useRef(false);
 	const animatorRef = useRef<GridAnimator | null>(null);
+	const [isMounted, setIsMounted] = useState(false);
 	
-	// 1. Sync window size
+	// 1. Sync window size and mounting state
 	useEffect(() => {
-		if (typeof window === 'undefined') return;
+		// Use requestAnimationFrame to avoid synchronous state update in effect
+		const frameId = requestAnimationFrame(() => setIsMounted(true));
+		
+		if (typeof window === 'undefined') return () => cancelAnimationFrame(frameId);
 		const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
 		
 		// Initial size check
@@ -117,6 +124,20 @@ export function GridView({
 			canvasRef.current.height = windowSize.height;
 		}
 		
+		// Handle fading out when NOT in debug mode (loading animation effect)
+		let finalOpacity = opacity;
+		if (!IS_DEBUG_MODE) {
+			// Start fading out when the reveal reaches 80% progress
+			const FADE_START = 0.8;
+			if (easedProgress > FADE_START) {
+				const fadeFactor = (easedProgress - FADE_START) / (1 - FADE_START);
+				finalOpacity *= (1 - fadeFactor);
+			}
+		}
+		
+		// Apply opacity directly to the canvas element for performance
+		canvasRef.current.style.opacity = finalOpacity.toString();
+		
 		GridRenderer.draw(
 			ctx,
 			windowSize,
@@ -124,9 +145,9 @@ export function GridView({
 			easedProgress,
 			revealConfig,
 			styleConfig,
-			hoveredCell
+			IS_DEBUG_MODE ? hoveredCell : null // Disable hover interaction visuals when not in debug mode
 		);
-	}, [viewportCells, windowSize, revealConfig, styleConfig, hoveredCell]);
+	}, [viewportCells, windowSize, revealConfig, styleConfig, hoveredCell, opacity]);
 	
 	// 5. Animation Controller
 	useEffect(() => {
@@ -163,7 +184,7 @@ export function GridView({
 	
 	// 6. Interaction Controller
 	const handleMouseMove = useCallback((e: React.MouseEvent) => {
-		if (!viewportCells || !gridConfig || rollProgressRef.current < 1) return;
+		if (!viewportCells || !gridConfig || rollProgressRef.current < 1 || !IS_DEBUG_MODE) return;
 		
 		const { startCellX, startCellY, cellSizeXPx, cellSizeYPx, cellSizeXCm, cellSizeYCm } = viewportCells;
 		const cellX = startCellX + Math.floor(e.clientX / cellSizeXPx);
@@ -177,7 +198,7 @@ export function GridView({
 		});
 	}, [viewportCells, gridConfig]);
 	
-	if (!visible) return null;
+	if (!visible || !isMounted) return null;
 	
 	return (
 		<>
@@ -185,11 +206,17 @@ export function GridView({
 				ref={canvasRef}
 				onMouseMove={handleMouseMove}
 				onMouseLeave={() => setHoveredCell(null)}
-				style={{ position: 'fixed', inset: 0, pointerEvents: 'auto', opacity, zIndex: 1 }}
+				style={{ 
+					position: 'fixed', 
+					inset: 0, 
+					pointerEvents: IS_DEBUG_MODE ? 'auto' : 'none', 
+					opacity, 
+					zIndex: 1 
+				}}
 			/>
 			
-			{/* Debug Info Panel */}
-			{gridConfig && viewportCells && (
+			{/* Debug Info Panel - Only visible in debug mode */}
+			{IS_DEBUG_MODE && gridConfig && viewportCells && (
 				<div style={{
 					position: 'fixed', top: 16, right: 16, padding: 12,
 					background: 'rgba(0,0,0,0.7)', border: '1px solid #333', borderRadius: 6,
