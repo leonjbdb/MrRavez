@@ -4,7 +4,6 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import {
     TOTAL_SECTIONS,
     RESTING_POINTS,
-    MIN_SCROLL_AFTER_GREETING,
     MOBILE_BREAKPOINT,
     SWIPE_THRESHOLDS,
 } from "../constants";
@@ -225,6 +224,9 @@ export function useScrollNavigation({
     const handleWheel = useCallback(() => {
         if (isMobile) return;
 
+        // Don't interfere with programmatic animations (dot clicks, keyboard nav)
+        if (isProgrammaticScrollRef.current) return;
+
         // Immediately cancel any ongoing snap animation - wheel takes priority
         if (isSnappingRef.current) {
             cancelSnap();
@@ -272,13 +274,22 @@ export function useScrollNavigation({
             setHasPassedGreeting(true);
         }
 
-        // Prevent scrolling above the minimum position when greeting is passed
-        if (hasPassedGreeting && progress < MIN_SCROLL_AFTER_GREETING) {
+        // Clamp to valid range - min is first resting point, max is last resting point
+        if (hasPassedGreeting && progress < RESTING_POINTS[0]) {
             window.scrollTo({
-                top: MIN_SCROLL_AFTER_GREETING * viewportHeight,
+                top: RESTING_POINTS[0] * viewportHeight,
                 behavior: "instant" as ScrollBehavior,
             });
-            progress = MIN_SCROLL_AFTER_GREETING;
+            progress = RESTING_POINTS[0];
+        }
+
+        // Prevent scrolling past the last resting point (bottom of parabola)
+        if (progress > RESTING_POINTS[2]) {
+            window.scrollTo({
+                top: RESTING_POINTS[2] * viewportHeight,
+                behavior: "instant" as ScrollBehavior,
+            });
+            progress = RESTING_POINTS[2];
         }
 
         setScrollProgress(progress);
@@ -299,9 +310,12 @@ export function useScrollNavigation({
 
             let currentProgress = window.scrollY / window.innerHeight;
 
-            // Enforce minimum scroll position
-            if (hasPassedGreeting && currentProgress < MIN_SCROLL_AFTER_GREETING) {
-                currentProgress = MIN_SCROLL_AFTER_GREETING;
+            // Clamp to valid range
+            if (hasPassedGreeting && currentProgress < RESTING_POINTS[0]) {
+                currentProgress = RESTING_POINTS[0];
+            }
+            if (currentProgress > RESTING_POINTS[2]) {
+                currentProgress = RESTING_POINTS[2];
             }
 
             const nearestPoint = findNearestRestingPoint(currentProgress);

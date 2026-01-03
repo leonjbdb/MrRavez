@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, ReactNode, useState, useEffect } from "react";
+import { useRef, ReactNode, useState, useEffect, useId } from "react";
 import { useDeviceOrientation } from "@/hooks/useDeviceOrientation";
 
 interface GlassCardProps {
@@ -61,6 +61,8 @@ export function GlassCard({
     wheelTranslateZ = 0,
 }: GlassCardProps) {
     const cardRef = useRef<HTMLDivElement>(null);
+    // useId generates stable IDs that match between server and client
+    const cardId = useId();
     const [transform, setTransform] = useState("rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)");
     
     // Device orientation for mobile tilt (uses proven hook that works for orbs)
@@ -107,52 +109,144 @@ export function GlassCard({
 
         let currentRotateX = 0;
         let currentRotateY = 0;
-        const smoothingFactor = 0.15;
+        let targetRotateX = 0;
+        let targetRotateY = 0;
+        const smoothingFactor = 0.12;
+        let rafId: number | null = null;
+        let animationRunning = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
 
-        const handleMouseMove = (e: MouseEvent) => {
-            // Use ref to get current hover state, avoiding stale closure
-            if (!isHoveringRef.current) return;
+        const applyTransform = () => {
+            setTransform(`rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg) scale3d(1.01, 1.01, 1.01)`);
+        };
 
+        const calculateTarget = (clientX: number, clientY: number) => {
             const rect = card.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
             const centerY = rect.top + rect.height / 2;
 
-            const mouseX = e.clientX - centerX;
-            const mouseY = e.clientY - centerY;
+            const mouseX = clientX - centerX;
+            const mouseY = clientY - centerY;
 
             const maxTilt = 3;
-            const targetRotateX = (mouseY / (rect.height / 2)) * -maxTilt;
-            const targetRotateY = (mouseX / (rect.width / 2)) * maxTilt;
+            targetRotateX = (mouseY / (rect.height / 2)) * -maxTilt;
+            targetRotateY = (mouseX / (rect.width / 2)) * maxTilt;
+        };
+
+        // Continuous animation loop for smooth tilt
+        const animateTilt = () => {
+            if (!isHoveringRef.current) {
+                animationRunning = false;
+                return;
+            }
 
             currentRotateX += (targetRotateX - currentRotateX) * smoothingFactor;
             currentRotateY += (targetRotateY - currentRotateY) * smoothingFactor;
+            
+            applyTransform();
 
-            setTransform(`rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg) scale3d(1.01, 1.01, 1.01)`);
+            // Keep animating until we're very close to target
+            const deltaX = Math.abs(targetRotateX - currentRotateX);
+            const deltaY = Math.abs(targetRotateY - currentRotateY);
+            
+            if (deltaX > 0.01 || deltaY > 0.01) {
+                rafId = requestAnimationFrame(animateTilt);
+            } else {
+                animationRunning = false;
+            }
         };
 
-        const handleMouseEnter = () => {
-            isHoveringRef.current = true;
-            setIsHovering(true);
+        const startAnimation = () => {
+            if (!animationRunning) {
+                animationRunning = true;
+                rafId = requestAnimationFrame(animateTilt);
+            }
         };
 
-        const handleMouseLeave = () => {
-            isHoveringRef.current = false;
-            setIsHovering(false);
+        const resetTilt = () => {
+            targetRotateX = 0;
+            targetRotateY = 0;
             currentRotateX = 0;
             currentRotateY = 0;
             setTransform("rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)");
         };
 
-        card.addEventListener("mousemove", handleMouseMove);
-        card.addEventListener("mouseenter", handleMouseEnter);
-        card.addEventListener("mouseleave", handleMouseLeave);
+        // Check if an element is inside this card using data attribute
+        const isElementInsideCard = (element: Element | null): boolean => {
+            let current: Element | null = element;
+            while (current) {
+                if (current.getAttribute('data-glass-card-id') === cardId) {
+                    return true;
+                }
+                current = current.parentElement;
+            }
+            return false;
+        };
+
+        // Check if mouse is over this card (handles overlapping cards)
+        const isMouseOverThisCard = (clientX: number, clientY: number): boolean => {
+            // First check visibility - skip hidden cards
+            const computedStyle = window.getComputedStyle(card);
+            const cardOpacity = parseFloat(computedStyle.opacity);
+            if (cardOpacity < 0.1 || computedStyle.visibility === 'hidden') {
+                return false;
+            }
+
+            // Check bounds first (quick rejection)
+            const rect = card.getBoundingClientRect();
+            if (clientX < rect.left || clientX > rect.right || 
+                clientY < rect.top || clientY > rect.bottom) {
+                return false;
+            }
+
+            // Check if an element at this point is inside this card
+            const elementAtPoint = document.elementFromPoint(clientX, clientY);
+            if (elementAtPoint && isElementInsideCard(elementAtPoint)) {
+                return true;
+            }
+
+            // Fallback: if element check failed but bounds match, still consider it a hit
+            // This handles edge cases during animations or when pointer-events are disabled
+            return cardOpacity >= 0.5;
+        };
+
+        // Use document-level mousemove for reliable detection across all child elements
+        const handleDocumentMouseMove = (e: MouseEvent) => {
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+            
+            const isOver = isMouseOverThisCard(e.clientX, e.clientY);
+            
+            if (isOver && !isHoveringRef.current) {
+                // Mouse just entered
+                isHoveringRef.current = true;
+                setIsHovering(true);
+                calculateTarget(e.clientX, e.clientY);
+                startAnimation();
+            } else if (isOver && isHoveringRef.current) {
+                // Mouse moving within card
+                calculateTarget(e.clientX, e.clientY);
+                startAnimation();
+            } else if (!isOver && isHoveringRef.current) {
+                // Mouse just left
+                isHoveringRef.current = false;
+                setIsHovering(false);
+                animationRunning = false;
+                if (rafId) cancelAnimationFrame(rafId);
+                resetTilt();
+            }
+        };
+
+        // Use document level for reliable event capture across all child elements
+        document.addEventListener("mousemove", handleDocumentMouseMove);
 
         return () => {
-            card.removeEventListener("mousemove", handleMouseMove);
-            card.removeEventListener("mouseenter", handleMouseEnter);
-            card.removeEventListener("mouseleave", handleMouseLeave);
+            document.removeEventListener("mousemove", handleDocumentMouseMove);
+            animationRunning = false;
+            if (rafId) cancelAnimationFrame(rafId);
         };
-    }, [isTouchDevice]);
+    }, [isTouchDevice, cardId]);
 
     const paddingValue = typeof padding === "number" ? `${padding}px` : padding;
     const mobilePaddingValue = mobilePadding 
@@ -251,6 +345,7 @@ export function GlassCard({
     return (
         <div
             ref={cardRef}
+            data-glass-card-id={cardId}
             className={`${hasMobileOverrides ? 'glass-card-mobile' : ''} ${className || ''}`.trim() || undefined}
             style={{
                 position: "relative",
