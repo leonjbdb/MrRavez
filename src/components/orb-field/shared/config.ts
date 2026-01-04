@@ -2,6 +2,9 @@
 // Grid System Configuration
 // =============================================================================
 
+/**
+ * Configuration for grid geometry calculations.
+ */
 export interface GridSystemConfig {
 	/** Target size for each grid cell in centimeters. */
 	targetCellSizeCm: number;
@@ -13,6 +16,9 @@ export interface GridSystemConfig {
 	baseDpi: number;
 }
 
+/**
+ * Configuration for the grid reveal animation.
+ */
 export interface GridRevealConfig {
 	/** Duration of the reveal animation in milliseconds. */
 	duration: number;
@@ -26,6 +32,9 @@ export interface GridRevealConfig {
 	whiteToGreyDistance: number;
 }
 
+/**
+ * Configuration for grid visual styles.
+ */
 export interface GridStyleConfig {
 	/** Base RGB color values for the grey grid lines. */
 	lineColorGrey: { r: number; g: number; b: number };
@@ -39,6 +48,24 @@ export interface GridStyleConfig {
 	hoverLineWidth: number;
 	/** Fill color for the hovered cell. */
 	hoverFillColor: string;
+	/** Border color for the hovered cell. */
+	hoverBorderColor: string;
+	/** Fill color for occupied cells. */
+	filledCellColor: string;
+}
+
+/**
+ * Configuration for the OrbField component behavior.
+ */
+export interface OrbFieldConfig {
+	/** Default base opacity of the canvas. */
+	defaultOpacity: number;
+	/** Progress threshold (0-1) at which fade-out begins in non-debug mode. */
+	fadeOutStart: number;
+	/** Z-index for the canvas element. */
+	canvasZIndex: number;
+	/** Z-index for the debug panel container. */
+	debugPanelZIndex: number;
 }
 
 /**
@@ -72,4 +99,16 @@ export const DEFAULT_STYLE_CONFIG: GridStyleConfig = {
 	lineWidth: 0.5,
 	hoverLineWidth: 1.5,
 	hoverFillColor: 'rgba(80, 200, 150, 0.2)',
+	hoverBorderColor: 'rgba(80, 200, 150, 0.6)',
+	filledCellColor: 'rgba(255, 80, 80, 0.6)',
+};
+
+/**
+ * Default configuration for OrbField component behavior.
+ */
+export const DEFAULT_ORBFIELD_CONFIG: OrbFieldConfig = {
+	defaultOpacity: 0.6,
+	fadeOutStart: 0.8,
+	canvasZIndex: 1,
+	debugPanelZIndex: 2,
 };

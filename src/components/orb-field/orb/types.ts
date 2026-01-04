@@ -1,25 +1,38 @@
 // =============================================================================
-// Orb Types
+// Orb Types - Type definitions for the orb system
 // =============================================================================
 
+/**
+ * Represents an individual orb in the simulation.
+ *
+ * Orbs have pixel-perfect positioning and velocity for smooth movement,
+ * with additional metadata for layer, size, and direction tracking.
+ */
 export interface Orb {
 	/** Unique identifier for the orb. */
 	id: string;
-	/** Pixel X position relative to the viewport. */
+
+	/** Pixel X position relative to the viewport origin. */
 	pxX: number;
-	/** Pixel Y position relative to the viewport. */
+
+	/** Pixel Y position relative to the viewport origin. */
 	pxY: number;
-	/** X velocity in pixels per second. */
+
+	/** X velocity component in pixels per second. */
 	vx: number;
-	/** Y velocity in pixels per second. */
+
+	/** Y velocity component in pixels per second. */
 	vy: number;
-	/** Current speed magnitude in pixels per second. */
+
+	/** Speed magnitude in pixels per second. */
 	speed: number;
-	/** Current direction angle in radians. */
+
+	/** Direction of travel in radians. */
 	angle: number;
+
 	/** Depth layer index (Z-axis). */
 	layer: number;
-	/** Diameter of the orb in grid cells. */
+
+	/** Orb diameter in grid cells. */
 	size: number;
 }
-

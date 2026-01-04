@@ -1,5 +1,5 @@
 // =============================================================================
-// SpatialGrid - 3D Grid Data Structure
+// SpatialGrid - 3D Grid Data Structure for Collision Detection
 // =============================================================================
 
 import { CELL_EMPTY, type CellState } from '../../shared/types';
@@ -7,22 +7,37 @@ import { type GridConfig } from '../types';
 
 /**
  * 3D Spatial Grid for efficient collision detection and spatial queries.
- * Uses a flat Uint8Array for memory efficiency.
  *
- * Responsibility: Manages raw grid data and handles coordinate conversions.
+ * Uses a flat Uint8Array for memory-efficient storage of cell states.
+ * The grid is indexed as [layer][y][x] in row-major order.
+ *
+ * Single Responsibility: Manages raw grid data and coordinate conversions.
  */
 export class SpatialGrid {
+	/** Grid configuration containing dimensions and world-space metrics. */
 	readonly config: GridConfig;
+
+	/** Flat array storing cell states for all layers. */
 	private cells: Uint8Array;
-	
+
+	/**
+	 * Creates a new SpatialGrid instance.
+	 *
+	 * @param config - Grid configuration with dimensions and world coordinates.
+	 */
 	constructor(config: GridConfig) {
 		this.config = config;
 		const totalCells = config.cellsX * config.cellsY * config.layers;
 		this.cells = new Uint8Array(totalCells);
 	}
-	
+
 	/**
-	 * Calculates the flat array index for a given 3D cell coordinate.
+	 * Calculates the flat array index for a 3D cell coordinate.
+	 *
+	 * @param cellX - X-coordinate of the cell.
+	 * @param cellY - Y-coordinate of the cell.
+	 * @param layer - Z-layer of the cell.
+	 * @returns Flat array index.
 	 */
 	private getIndex(cellX: number, cellY: number, layer: number): number {
 		return (
@@ -31,9 +46,14 @@ export class SpatialGrid {
 			cellX
 		);
 	}
-	
+
 	/**
-	 * Checks if the given coordinates are within the grid bounds.
+	 * Checks if coordinates are within grid bounds.
+	 *
+	 * @param cellX - X-coordinate to check.
+	 * @param cellY - Y-coordinate to check.
+	 * @param layer - Z-layer to check.
+	 * @returns True if coordinates are valid.
 	 */
 	isInBounds(cellX: number, cellY: number, layer: number): boolean {
 		return (
@@ -42,27 +62,40 @@ export class SpatialGrid {
 			layer >= 0 && layer < this.config.layers
 		);
 	}
-	
+
 	/**
-	 * Retrieves the state of a specific cell.
-	 * Returns CELL_EMPTY if out of bounds.
+	 * Gets the state of a specific cell.
+	 *
+	 * @param cellX - X-coordinate of the cell.
+	 * @param cellY - Y-coordinate of the cell.
+	 * @param layer - Z-layer of the cell.
+	 * @returns Cell state, or CELL_EMPTY if out of bounds.
 	 */
 	getCell(cellX: number, cellY: number, layer: number): CellState {
 		if (!this.isInBounds(cellX, cellY, layer)) return CELL_EMPTY;
 		return this.cells[this.getIndex(cellX, cellY, layer)] as CellState;
 	}
-	
+
 	/**
 	 * Sets the state of a specific cell.
-	 * No-op if out of bounds.
+	 *
+	 * @param cellX - X-coordinate of the cell.
+	 * @param cellY - Y-coordinate of the cell.
+	 * @param layer - Z-layer of the cell.
+	 * @param state - New cell state to set.
 	 */
 	setCell(cellX: number, cellY: number, layer: number, state: CellState): void {
 		if (!this.isInBounds(cellX, cellY, layer)) return;
 		this.cells[this.getIndex(cellX, cellY, layer)] = state;
 	}
-	
+
 	/**
 	 * Converts world coordinates (cm) to grid cell coordinates.
+	 *
+	 * @param xCm - World X position in centimeters.
+	 * @param yCm - World Y position in centimeters.
+	 * @param layer - Z-layer (will be clamped to valid range).
+	 * @returns Object with cellX, cellY, and clamped layer.
 	 */
 	worldToGrid(xCm: number, yCm: number, layer: number): { cellX: number; cellY: number; layer: number } {
 		const cfg = this.config;
@@ -71,9 +104,15 @@ export class SpatialGrid {
 		const clampedLayer = Math.max(0, Math.min(cfg.layers - 1, Math.round(layer)));
 		return { cellX, cellY, layer: clampedLayer };
 	}
-	
+
 	/**
-	 * Converts grid cell coordinates to world coordinates (cm), returning the center of the cell.
+	 * Converts grid cell coordinates to world coordinates (cm).
+	 * Returns the center position of the cell.
+	 *
+	 * @param cellX - Grid X index.
+	 * @param cellY - Grid Y index.
+	 * @param layer - Z-layer.
+	 * @returns Object with xCm, yCm, and layer.
 	 */
 	gridToWorld(cellX: number, cellY: number, layer: number): { xCm: number; yCm: number; layer: number } {
 		const cfg = this.config;
@@ -81,9 +120,10 @@ export class SpatialGrid {
 		const yCm = cfg.minYCm + (cellY + 0.5) * cfg.cellSizeYCm;
 		return { xCm, yCm, layer };
 	}
-	
+
 	/**
-	 * Resets all cells in the grid to CELL_EMPTY.
+	 * Resets all cells to CELL_EMPTY.
+	 * Uses Uint8Array.fill() for optimal performance.
 	 */
 	clear(): void {
 		this.cells.fill(CELL_EMPTY);
