@@ -78,6 +78,7 @@ export function OrbField({
 	const windowSizeRef = useRef({ width: 0, height: 0 });
 	const currentLayerRef = useRef(initialLayer);
 	const hoveredCellRef = useRef<{ x: number; y: number; worldX: number; worldY: number } | null>(null);
+	const isPausedRef = useRef(false);
 
 	// =========================================================================
 	// React State for UI
@@ -89,6 +90,7 @@ export function OrbField({
 	const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number; worldX: number; worldY: number } | null>(null);
 	const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
 	const [isMounted, setIsMounted] = useState(false);
+	const [isPaused, setIsPaused] = useState(false);
 
 	// =========================================================================
 	// Orb Management (Delegated to Custom Hook)
@@ -127,6 +129,7 @@ export function OrbField({
 	useEffect(() => { styleConfigRef.current = styleConfig; }, [styleConfig]);
 	useEffect(() => { opacityRef.current = opacity; }, [opacity]);
 	useEffect(() => { currentLayerRef.current = currentLayer; }, [currentLayer]);
+	useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
 	// =========================================================================
 	// 1. Mount & Resize Logic
@@ -197,8 +200,8 @@ export function OrbField({
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 
-		// A. Physics Update (only after reveal completes)
-		if (easedProgress >= 1) {
+		// A. Physics Update (only after reveal completes and when not paused)
+		if (easedProgress >= 1 && !isPausedRef.current) {
 			const currentOrbs = orbsRef.current;
 
 			// Phase 1: Mark all orbs at current positions
@@ -241,6 +244,13 @@ export function OrbField({
 			}
 
 			// Phase 7: Re-mark at new positions for rendering
+			grid.clearDynamic();
+			for (const orb of currentOrbs) {
+				OrbPhysics.markOrbCircular(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
+			}
+		} else if (easedProgress >= 1 && isPausedRef.current) {
+			// When paused, still mark orbs for rendering but don't update physics
+			const currentOrbs = orbsRef.current;
 			grid.clearDynamic();
 			for (const orb of currentOrbs) {
 				OrbPhysics.markOrbCircular(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
@@ -370,6 +380,10 @@ export function OrbField({
 		setHoveredCell(null);
 	}, []);
 
+	const handleTogglePause = useCallback(() => {
+		setIsPaused((prev) => !prev);
+	}, []);
+
 	// =========================================================================
 	// Render
 	// =========================================================================
@@ -411,9 +425,11 @@ export function OrbField({
 						selectedOrbId={selectedOrbId}
 						selectedOrb={selectedOrbData}
 						orbSize={orbSize}
+						isPaused={isPaused}
 						onSelectOrb={selectOrb}
 						onDeleteOrb={handleDeleteOrb}
 						onSizeChange={setOrbSize}
+						onTogglePause={handleTogglePause}
 					/>
 
 					<GridDebugPanel

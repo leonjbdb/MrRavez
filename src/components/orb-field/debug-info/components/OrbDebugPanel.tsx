@@ -19,12 +19,16 @@ interface OrbDebugPanelProps {
 	selectedOrb?: Orb | null;
 	/** Current brush size for new orbs. */
 	orbSize?: number;
+	/** Whether physics is paused. */
+	isPaused?: boolean;
 	/** Callback when an orb is selected. */
 	onSelectOrb?: (id: string | null) => void;
 	/** Callback when an orb is deleted. */
 	onDeleteOrb?: (id: string) => void;
 	/** Callback when the brush size changes. */
 	onSizeChange?: (size: number) => void;
+	/** Callback to toggle pause state. */
+	onTogglePause?: () => void;
 }
 
 /**
@@ -35,6 +39,7 @@ interface OrbDebugPanelProps {
  * - Real-time position and velocity display
  * - Delete button for selected orb
  * - Brush size slider for new orbs
+ * - Pause/Resume physics button
  *
  * Only visible when debug mode is enabled.
  */
@@ -43,9 +48,11 @@ export function OrbDebugPanel({
 	selectedOrbId,
 	selectedOrb: selectedOrbProp,
 	orbSize = DEFAULT_ORB_SPAWN_CONFIG.defaultSize,
+	isPaused = false,
 	onSelectOrb,
 	onDeleteOrb,
 	onSizeChange,
+	onTogglePause,
 }: OrbDebugPanelProps) {
 	const handleSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const newSize = parseInt(e.target.value, 10);
@@ -128,6 +135,26 @@ export function OrbDebugPanel({
 					Vel: vx={selectedOrb.vx.toFixed(1)}, vy={selectedOrb.vy.toFixed(1)}, vz={selectedOrb.vz.toFixed(2)}
 				</div>
 			)}
+
+			{/* Pause/Resume Button */}
+			<div style={{ display: 'flex', gap: 4 }}>
+				<button
+					onClick={() => onTogglePause?.()}
+					style={{
+						flex: 1,
+						background: isPaused ? '#4a4' : '#a44',
+						color: 'white',
+						border: 'none',
+						borderRadius: 3,
+						padding: '6px 2px',
+						fontSize: 10,
+						fontWeight: 'bold',
+						cursor: 'pointer',
+					}}
+				>
+					{isPaused ? '▶ Resume' : '⏸ Pause'}
+				</button>
+			</div>
 
 			{/* Delete Button */}
 			<div style={{ display: 'flex', gap: 4 }}>
