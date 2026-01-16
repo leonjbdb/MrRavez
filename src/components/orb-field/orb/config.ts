@@ -143,10 +143,10 @@ export interface ContinuousSpawnConfig {
 /**
  * Default configuration for continuous orb spawning.
  * Orb count and spawn rate scale linearly with screen area.
- * At 4K: 1000 orbs, at 1080p: ~250 orbs.
+ * At 4K: 600 orbs, at 1080p: ~150 orbs.
  */
 export const DEFAULT_CONTINUOUS_SPAWN_CONFIG: ContinuousSpawnConfig = {
-	targetOrbCountAt4K: 1000,          // Target at 4K resolution
+	targetOrbCountAt4K: 600,           // Target at 4K resolution (reduced by 2/5ths)
 	referenceScreenArea: 3840 * 2160,  // 4K resolution area (8,294,400 pixels)
 	delayAfterBurstMs: 3000,           // Wait 3 seconds after burst
 	baseSpawnRateAt4K: 50,             // Base spawn rate at 4K
