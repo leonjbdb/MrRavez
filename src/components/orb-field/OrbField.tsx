@@ -9,6 +9,7 @@ import { GridConfigFactory } from './grid/core/GridConfigFactory';
 import { ViewportCellsFactory } from './grid/core/ViewportCellsFactory';
 import { SpatialGrid } from './grid/core/SpatialGrid';
 import { OrbPhysics } from './orb/core/OrbPhysics';
+import { CollisionSystem } from './collision/CollisionSystem';
 import { useOrbManager } from './orb/hooks/useOrbManager';
 import { type GridConfig, type ViewportCells } from './grid/types';
 import {
@@ -160,6 +161,10 @@ export function OrbField({
 
 		const config = GridConfigFactory.create(window);
 		const newGrid = new SpatialGrid(config);
+
+		// Initialize border walls around grid edges
+		newGrid.initializeBorder();
+
 		const vpc = ViewportCellsFactory.create(config);
 
 		// Update refs for immediate loop access
@@ -193,10 +198,20 @@ export function OrbField({
 
 		// A. Physics Update (only after reveal completes)
 		if (easedProgress >= 1) {
-			grid.clear();
+			grid.clearDynamic();
 			const currentOrbs = orbsRef.current;
 			for (const orb of currentOrbs) {
-				OrbPhysics.updatePosition(orb, deltaTime);
+				// Check for collision with filled cells or borders
+				const collision = CollisionSystem.checkMove(orb, deltaTime, grid, vpc);
+
+				if (collision.blocked) {
+					// Apply reflection on colliding axes
+					CollisionSystem.applyReflection(orb, collision.reflectX, collision.reflectY);
+				} else {
+					// Move freely if no collision
+					OrbPhysics.updatePosition(orb, deltaTime);
+				}
+
 				OrbPhysics.markOrb(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
 			}
 		}

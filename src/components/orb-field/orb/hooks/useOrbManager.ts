@@ -10,6 +10,7 @@ import { OrbPhysics } from '../core/OrbPhysics';
 import { SpatialGrid } from '../../grid/core/SpatialGrid';
 import { type ViewportCells } from '../../grid/types';
 import { DEFAULT_ORB_SPAWN_CONFIG, type OrbSpawnConfig } from '../config';
+import { CollisionSystem } from '../../collision/CollisionSystem';
 
 interface UseOrbManagerOptions {
 	/** Configuration for orb spawning. */
@@ -59,6 +60,11 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 		grid: SpatialGrid,
 		vpc: ViewportCells
 	) => {
+		// Validate spawn position - block if cell is occupied
+		if (!CollisionSystem.canSpawn(pxX, pxY, layer, grid, vpc)) {
+			return;
+		}
+
 		const angle = Math.random() * Math.PI * 2;
 		const speedRange = spawnConfig.maxSpeed - spawnConfig.minSpeed;
 		const speed = spawnConfig.minSpeed + Math.random() * speedRange;

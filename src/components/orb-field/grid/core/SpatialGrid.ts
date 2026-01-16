@@ -2,7 +2,7 @@
 // SpatialGrid - 3D Grid Data Structure for Collision Detection
 // =============================================================================
 
-import { CELL_EMPTY, type CellState } from '../../shared/types';
+import { CELL_EMPTY, CELL_BORDER, CELL_FILLED, type CellState } from '../../shared/types';
 import { type GridConfig } from '../types';
 
 /**
@@ -127,5 +127,52 @@ export class SpatialGrid {
 	 */
 	clear(): void {
 		this.cells.fill(CELL_EMPTY);
+	}
+
+	/**
+	 * Clears only dynamic cells (CELL_FILLED, CELL_PROXIMITY).
+	 * Preserves CELL_BORDER cells to maintain permanent walls.
+	 */
+	clearDynamic(): void {
+		for (let i = 0; i < this.cells.length; i++) {
+			if (this.cells[i] !== CELL_BORDER) {
+				this.cells[i] = CELL_EMPTY;
+			}
+		}
+	}
+
+	/**
+	 * Initializes border cells around the edge of the grid.
+	 * Marks all edge cells as CELL_BORDER on all layers.
+	 */
+	initializeBorder(): void {
+		const { cellsX, cellsY, layers } = this.config;
+
+		for (let layer = 0; layer < layers; layer++) {
+			// Top and bottom edges
+			for (let x = 0; x < cellsX; x++) {
+				this.setCell(x, 0, layer, CELL_BORDER);
+				this.setCell(x, cellsY - 1, layer, CELL_BORDER);
+			}
+
+			// Left and right edges
+			for (let y = 0; y < cellsY; y++) {
+				this.setCell(0, y, layer, CELL_BORDER);
+				this.setCell(cellsX - 1, y, layer, CELL_BORDER);
+			}
+		}
+	}
+
+	/**
+	 * Checks if a cell blocks movement (either CELL_FILLED or CELL_BORDER).
+	 *
+	 * @param cellX - X-coordinate of the cell.
+	 * @param cellY - Y-coordinate of the cell.
+	 * @param layer - Z-layer of the cell.
+	 * @returns True if the cell blocks movement.
+	 */
+	isBlocking(cellX: number, cellY: number, layer: number): boolean {
+		const state = this.getCell(cellX, cellY, layer);
+		return state === CELL_FILLED || state === CELL_BORDER;
 	}
 }
