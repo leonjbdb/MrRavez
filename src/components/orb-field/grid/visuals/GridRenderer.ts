@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { type GridRevealConfig, type GridStyleConfig } from '../../shared/config';
-import { CELL_FILLED } from '../../shared/types';
+import { CELL_FILLED, CELL_PROXIMITY, hasCellFlag } from '../../shared/types';
 import { type Orb } from '../../orb/types';
 import { DEFAULT_ORB_DEBUG_CONFIG, type OrbDebugVisualConfig } from '../../orb/config';
 import { SpatialGrid } from '../core/SpatialGrid';
@@ -131,7 +131,9 @@ export class GridRenderer {
 	}
 
 	/**
-	 * Draws cells that are occupied (CELL_FILLED state).
+	 * Draws cells that are occupied (CELL_FILLED and CELL_PROXIMITY states).
+	 * Renders in two passes to ensure red orb bodies always appear above yellow zones.
+	 * Uses bit flags so cells can have multiple states simultaneously.
 	 */
 	private static drawOccupiedCells(
 		ctx: CanvasRenderingContext2D,
@@ -145,15 +147,29 @@ export class GridRenderer {
 		currentLayer: number,
 		fillColor: string
 	): void {
-		ctx.fillStyle = fillColor;
-
+		// Pass 1: Draw ALL proximity cells (yellow/avoidance zones)
+		ctx.fillStyle = 'rgba(255, 220, 0, 0.5)'; // Brighter yellow with more opacity
 		for (let cy = 0; cy <= (endCellY - startCellY); cy++) {
 			for (let cx = 0; cx <= (endCellX - startCellX); cx++) {
 				const cellX = startCellX + cx;
 				const cellY = startCellY + cy;
 				const state = grid.getCell(cellX, cellY, currentLayer);
 
-				if (state === CELL_FILLED) {
+				if (hasCellFlag(state, CELL_PROXIMITY)) {
+					ctx.fillRect(cx * cellSizeXPx, cy * cellSizeYPx, cellSizeXPx, cellSizeYPx);
+				}
+			}
+		}
+
+		// Pass 2: Draw ALL filled cells (red/orb bodies) on top
+		ctx.fillStyle = fillColor;
+		for (let cy = 0; cy <= (endCellY - startCellY); cy++) {
+			for (let cx = 0; cx <= (endCellX - startCellX); cx++) {
+				const cellX = startCellX + cx;
+				const cellY = startCellY + cy;
+				const state = grid.getCell(cellX, cellY, currentLayer);
+
+				if (hasCellFlag(state, CELL_FILLED)) {
 					ctx.fillRect(cx * cellSizeXPx, cy * cellSizeYPx, cellSizeXPx, cellSizeYPx);
 				}
 			}

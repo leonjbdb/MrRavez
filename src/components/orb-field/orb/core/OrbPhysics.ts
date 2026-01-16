@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { SpatialGrid } from '../../grid/core/SpatialGrid';
-import { CELL_FILLED, CELL_EMPTY } from '../../shared/types';
+import { CELL_FILLED, CELL_EMPTY, CELL_PROXIMITY } from '../../shared/types';
 import { type Orb } from '../types';
 
 /**
@@ -66,6 +66,9 @@ export class OrbPhysics {
 	 * 
 	 * For multi-cell orbs (size > 1), marks all cells within the circular
 	 * radius. Uses efficient circle rasterization with pre-computed offsets.
+	 * Also marks an avoidance zone (proximity field) around the orb.
+	 * 
+	 * Uses addCellFlag so proximity and filled can coexist in the same cell.
 	 * 
 	 * @param grid - The spatial grid instance.
 	 * @param orb - The orb to mark.
@@ -89,12 +92,28 @@ export class OrbPhysics {
 		// Size 1 → radius 0 (1 cell), Size 2 → radius 1 (5 cells), etc.
 		const radius = orb.size - 1;
 
-		// Mark cells within circular radius
+		// Avoidance zone scales with orb size but with diminishing returns
+		// Uses square root for sublinear growth: sqrt(size) + 1
+		// Size 1 → ~2 cells, Size 4 → ~3 cells, Size 9 → ~4 cells, Size 16 → ~5 cells
+		const avoidanceRadius = Math.floor(Math.sqrt(orb.size) + radius + 1);
+
+		// First pass: Mark avoidance zone (yellow cells)
+		for (let dy = -avoidanceRadius; dy <= avoidanceRadius; dy++) {
+			for (let dx = -avoidanceRadius; dx <= avoidanceRadius; dx++) {
+				const distSq = dx * dx + dy * dy;
+				// Mark cells in avoidance ring (beyond orb but within avoidance radius)
+				if (distSq > radius * radius && distSq <= avoidanceRadius * avoidanceRadius) {
+					grid.addCellFlag(centerCellX + dx, centerCellY + dy, orb.layer, CELL_PROXIMITY);
+				}
+			}
+		}
+
+		// Second pass: Mark orb cells (red cells)
 		for (let dy = -radius; dy <= radius; dy++) {
 			for (let dx = -radius; dx <= radius; dx++) {
 				// Check if cell is within circular boundary
 				if (dx * dx + dy * dy <= radius * radius) {
-					grid.setCell(centerCellX + dx, centerCellY + dy, orb.layer, CELL_FILLED);
+					grid.addCellFlag(centerCellX + dx, centerCellY + dy, orb.layer, CELL_FILLED);
 				}
 			}
 		}

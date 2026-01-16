@@ -2,7 +2,7 @@
 // SpatialGrid - 3D Grid Data Structure for Collision Detection
 // =============================================================================
 
-import { CELL_EMPTY, CELL_BORDER, CELL_FILLED, type CellState } from '../../shared/types';
+import { CELL_EMPTY, CELL_BORDER, CELL_FILLED, hasCellFlag, type CellState } from '../../shared/types';
 import { type GridConfig } from '../types';
 
 /**
@@ -90,6 +90,35 @@ export class SpatialGrid {
 	}
 
 	/**
+	 * Adds a flag to a cell (using bitwise OR).
+	 * Allows multiple states to coexist in the same cell.
+	 *
+	 * @param cellX - X-coordinate of the cell.
+	 * @param cellY - Y-coordinate of the cell.
+	 * @param layer - Z-layer of the cell.
+	 * @param flag - Flag to add to the cell.
+	 */
+	addCellFlag(cellX: number, cellY: number, layer: number, flag: CellState): void {
+		if (!this.isInBounds(cellX, cellY, layer)) return;
+		const idx = this.getIndex(cellX, cellY, layer);
+		this.cells[idx] |= flag;
+	}
+
+	/**
+	 * Removes a flag from a cell (using bitwise AND NOT).
+	 *
+	 * @param cellX - X-coordinate of the cell.
+	 * @param cellY - Y-coordinate of the cell.
+	 * @param layer - Z-layer of the cell.
+	 * @param flag - Flag to remove from the cell.
+	 */
+	removeCellFlag(cellX: number, cellY: number, layer: number, flag: CellState): void {
+		if (!this.isInBounds(cellX, cellY, layer)) return;
+		const idx = this.getIndex(cellX, cellY, layer);
+		this.cells[idx] &= ~flag;
+	}
+
+	/**
 	 * Converts world coordinates (cm) to grid cell coordinates.
 	 *
 	 * @param xCm - World X position in centimeters.
@@ -173,6 +202,6 @@ export class SpatialGrid {
 	 */
 	isBlocking(cellX: number, cellY: number, layer: number): boolean {
 		const state = this.getCell(cellX, cellY, layer);
-		return state === CELL_FILLED || state === CELL_BORDER;
+		return hasCellFlag(state, CELL_FILLED) || hasCellFlag(state, CELL_BORDER);
 	}
 }

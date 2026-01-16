@@ -198,21 +198,41 @@ export function OrbField({
 
 		// A. Physics Update (only after reveal completes)
 		if (easedProgress >= 1) {
-			grid.clearDynamic();
 			const currentOrbs = orbsRef.current;
+
+			// Phase 1: Mark all orbs at current positions
+			grid.clearDynamic();
 			for (const orb of currentOrbs) {
-				// Check for collision with filled cells or borders
+				OrbPhysics.markOrbCircular(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
+			}
+
+			// Phase 2: Check border/wall collisions for each orb
+			for (const orb of currentOrbs) {
+				// Temporarily clear this orb's cells to check collision with walls and other orbs
+				OrbPhysics.clearOrbCircular(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
+
 				const collision = CollisionSystem.checkMove(orb, deltaTime, grid, vpc);
 
-				if (collision.blocked) {
-					// Apply reflection on colliding axes
-					CollisionSystem.applyReflection(orb, collision.reflectX, collision.reflectY);
-				} else {
-					// Move freely if no collision
-					OrbPhysics.updatePosition(orb, deltaTime);
-				}
+				// Restore orb's cells
+				OrbPhysics.markOrbCircular(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
 
-				// Mark orb's circular footprint on the grid
+				if (collision.blocked) {
+					// Apply reflection on colliding axes (walls/borders)
+					CollisionSystem.applyReflection(orb, collision.reflectX, collision.reflectY);
+				}
+			}
+
+			// Phase 3: Resolve orb-orb collisions (mutual elastic bounce)
+			CollisionSystem.resolveOrbOrbCollisions(currentOrbs, vpc);
+
+			// Phase 4: Move all orbs
+			for (const orb of currentOrbs) {
+				OrbPhysics.updatePosition(orb, deltaTime);
+			}
+
+			// Phase 5: Re-mark at new positions for rendering
+			grid.clearDynamic();
+			for (const orb of currentOrbs) {
 				OrbPhysics.markOrbCircular(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
 			}
 		}

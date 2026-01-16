@@ -2,7 +2,7 @@
 // CollisionSystem - Collision Detection and Resolution
 // =============================================================================
 
-import { CELL_EMPTY } from '../shared/types';
+import { CELL_EMPTY, hasCellFlag, CELL_FILLED, CELL_BORDER } from '../shared/types';
 import { SpatialGrid } from '../grid/core/SpatialGrid';
 import { type ViewportCells } from '../grid/types';
 import { type Orb } from '../orb/types';
@@ -132,7 +132,9 @@ export class CollisionSystem {
 		for (let dy = -radius; dy <= radius; dy++) {
 			for (let dx = -radius; dx <= radius; dx++) {
 				if (dx * dx + dy * dy <= radius * radius) {
-					if (grid.getCell(centerCellX + dx, centerCellY + dy, layer) !== CELL_EMPTY) {
+					const state = grid.getCell(centerCellX + dx, centerCellY + dy, layer);
+					// Check if cell has blocking flags (FILLED or BORDER)
+					if (hasCellFlag(state, CELL_FILLED) || hasCellFlag(state, CELL_BORDER)) {
 						return false;
 					}
 				}
@@ -159,5 +161,80 @@ export class CollisionSystem {
 	): void {
 		if (reflectX) orb.vx = -orb.vx;
 		if (reflectY) orb.vy = -orb.vy;
+	}
+
+	/**
+	 * Resolves orb-orb collisions with mass-weighted elastic bounce.
+	 * 
+	 * Checks all pairs of orbs for overlap and applies impulses based on
+	 * their relative masses (size). Larger orbs affect smaller orbs more.
+	 * 
+	 * Uses the elastic collision formula:
+	 * v1' = v1 - (2*m2/(m1+m2)) * dot(v1-v2, n) * n
+	 * v2' = v2 + (2*m1/(m1+m2)) * dot(v1-v2, n) * n
+	 * 
+	 * @param orbs - Array of all orbs to check.
+	 * @param vpc - Viewport cell metrics for coordinate conversion.
+	 */
+	static resolveOrbOrbCollisions(
+		orbs: Orb[],
+		vpc: ViewportCells
+	): void {
+		for (let i = 0; i < orbs.length; i++) {
+			for (let j = i + 1; j < orbs.length; j++) {
+				const orbA = orbs[i];
+				const orbB = orbs[j];
+
+				// Skip if on different layers
+				if (orbA.layer !== orbB.layer) continue;
+
+				// Calculate distance between centers in cells
+				const cellAX = orbA.pxX * vpc.invCellSizeXPx;
+				const cellAY = orbA.pxY * vpc.invCellSizeYPx;
+				const cellBX = orbB.pxX * vpc.invCellSizeXPx;
+				const cellBY = orbB.pxY * vpc.invCellSizeYPx;
+
+				const dx = cellBX - cellAX;
+				const dy = cellBY - cellAY;
+				const distSq = dx * dx + dy * dy;
+
+				// Combined radius (in cells) - orbs touch when distance <= sum of radii + 1
+				const radiusA = orbA.size - 1;
+				const radiusB = orbB.size - 1;
+				const minDist = radiusA + radiusB + 1;
+
+				if (distSq < minDist * minDist && distSq > 0.001) {
+					// Collision detected - apply mass-weighted elastic collision
+					const dist = Math.sqrt(distSq);
+					const nx = dx / dist;
+					const ny = dy / dist;
+
+					// Use size as mass (larger orbs have more momentum)
+					const massA = orbA.size;
+					const massB = orbB.size;
+					const totalMass = massA + massB;
+
+					// Relative velocity of A with respect to B
+					const dvx = orbA.vx - orbB.vx;
+					const dvy = orbA.vy - orbB.vy;
+
+					// Relative velocity in collision normal direction
+					const dvn = dvx * nx + dvy * ny;
+
+					// Only resolve if objects are approaching each other
+					if (dvn > 0) {
+						// Mass-weighted impulse factors
+						// Smaller orbs get pushed more, larger orbs get pushed less
+						const impulseA = (2 * massB / totalMass) * dvn;
+						const impulseB = (2 * massA / totalMass) * dvn;
+
+						orbA.vx -= impulseA * nx;
+						orbA.vy -= impulseA * ny;
+						orbB.vx += impulseB * nx;
+						orbB.vy += impulseB * ny;
+					}
+				}
+			}
+		}
 	}
 }
