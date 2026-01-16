@@ -212,7 +212,8 @@ export function OrbField({
 					OrbPhysics.updatePosition(orb, deltaTime);
 				}
 
-				OrbPhysics.markOrb(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
+				// Mark orb's circular footprint on the grid
+				OrbPhysics.markOrbCircular(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
 			}
 		}
 

@@ -61,7 +61,7 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 		vpc: ViewportCells
 	) => {
 		// Validate spawn position - block if cell is occupied
-		if (!CollisionSystem.canSpawn(pxX, pxY, layer, grid, vpc)) {
+		if (!CollisionSystem.canSpawn(pxX, pxY, layer, size, grid, vpc)) {
 			return;
 		}
 
@@ -86,13 +86,13 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 		setSelectedOrbId(newOrb.id);
 		selectedOrbIdRef.current = newOrb.id;
 
-		OrbPhysics.markOrb(grid, newOrb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
+		OrbPhysics.markOrbCircular(grid, newOrb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
 	}, [spawnConfig.minSpeed, spawnConfig.maxSpeed]);
 
 	const deleteOrb = useCallback((id: string, grid: SpatialGrid, vpc: ViewportCells) => {
 		const orbToDelete = orbsRef.current.find(o => o.id === id);
 		if (orbToDelete) {
-			OrbPhysics.clearOrb(grid, orbToDelete, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
+			OrbPhysics.clearOrbCircular(grid, orbToDelete, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
 			orbsRef.current = orbsRef.current.filter(o => o.id !== id);
 			setOrbs([...orbsRef.current]);
 

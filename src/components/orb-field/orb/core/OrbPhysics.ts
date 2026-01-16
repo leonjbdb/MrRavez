@@ -62,6 +62,45 @@ export class OrbPhysics {
 	}
 
 	/**
+	 * Marks cells in a circular pattern based on orb size.
+	 * 
+	 * For multi-cell orbs (size > 1), marks all cells within the circular
+	 * radius. Uses efficient circle rasterization with pre-computed offsets.
+	 * 
+	 * @param grid - The spatial grid instance.
+	 * @param orb - The orb to mark.
+	 * @param startCellX - Viewport start cell X offset.
+	 * @param startCellY - Viewport start cell Y offset.
+	 * @param invCellSizeX - Inverse cell width for fast division.
+	 * @param invCellSizeY - Inverse cell height for fast division.
+	 */
+	static markOrbCircular(
+		grid: SpatialGrid,
+		orb: Orb,
+		startCellX: number,
+		startCellY: number,
+		invCellSizeX: number,
+		invCellSizeY: number
+	): void {
+		const centerCellX = ((orb.pxX * invCellSizeX) | 0) + startCellX;
+		const centerCellY = ((orb.pxY * invCellSizeY) | 0) + startCellY;
+
+		// Radius is size - 1, ensuring each size is distinct:
+		// Size 1 → radius 0 (1 cell), Size 2 → radius 1 (5 cells), etc.
+		const radius = orb.size - 1;
+
+		// Mark cells within circular radius
+		for (let dy = -radius; dy <= radius; dy++) {
+			for (let dx = -radius; dx <= radius; dx++) {
+				// Check if cell is within circular boundary
+				if (dx * dx + dy * dy <= radius * radius) {
+					grid.setCell(centerCellX + dx, centerCellY + dy, orb.layer, CELL_FILLED);
+				}
+			}
+		}
+	}
+
+	/**
 	 * Clears an orb's footprint from the spatial grid.
 	 *
 	 * @param grid - The spatial grid instance.
@@ -83,5 +122,38 @@ export class OrbPhysics {
 		const cellY = ((orb.pxY * invCellSizeY) | 0) + startCellY;
 
 		grid.setCell(cellX, cellY, orb.layer, CELL_EMPTY);
+	}
+
+	/**
+	 * Clears an orb's circular footprint from the spatial grid.
+	 * 
+	 * Mirrors the marking pattern of markOrbCircular().
+	 * 
+	 * @param grid - The spatial grid instance.
+	 * @param orb - The orb to clear.
+	 * @param startCellX - Viewport start cell X offset.
+	 * @param startCellY - Viewport start cell Y offset.
+	 * @param invCellSizeX - Inverse cell width for fast division.
+	 * @param invCellSizeY - Inverse cell height for fast division.
+	 */
+	static clearOrbCircular(
+		grid: SpatialGrid,
+		orb: Orb,
+		startCellX: number,
+		startCellY: number,
+		invCellSizeX: number,
+		invCellSizeY: number
+	): void {
+		const centerCellX = ((orb.pxX * invCellSizeX) | 0) + startCellX;
+		const centerCellY = ((orb.pxY * invCellSizeY) | 0) + startCellY;
+		const radius = orb.size - 1;
+
+		for (let dy = -radius; dy <= radius; dy++) {
+			for (let dx = -radius; dx <= radius; dx++) {
+				if (dx * dx + dy * dy <= radius * radius) {
+					grid.setCell(centerCellX + dx, centerCellY + dy, orb.layer, CELL_EMPTY);
+				}
+			}
+		}
 	}
 }
