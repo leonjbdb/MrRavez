@@ -55,29 +55,38 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 	const createOrb = useCallback((
 		pxX: number,
 		pxY: number,
-		layer: number,
+		z: number,
 		size: number,
 		grid: SpatialGrid,
 		vpc: ViewportCells
 	) => {
 		// Validate spawn position - block if cell is occupied
-		if (!CollisionSystem.canSpawn(pxX, pxY, layer, size, grid, vpc)) {
+		if (!CollisionSystem.canSpawn(pxX, pxY, z, size, grid, vpc)) {
 			return;
 		}
 
-		const angle = Math.random() * Math.PI * 2;
+		// Random 3D direction - use spherical coordinates
+		const theta = Math.random() * Math.PI * 2; // XY plane angle
+		const phi = (Math.random() - 0.5) * Math.PI * 0.5; // Z angle (±45°)
 		const speedRange = spawnConfig.maxSpeed - spawnConfig.minSpeed;
 		const speed = spawnConfig.minSpeed + Math.random() * speedRange;
+
+		// Convert to velocity components
+		const cosTheta = Math.cos(theta);
+		const sinTheta = Math.sin(theta);
+		const cosPhi = Math.cos(phi);
+		const sinPhi = Math.sin(phi);
 
 		const newOrb: Orb = {
 			id: crypto.randomUUID(),
 			pxX,
 			pxY,
-			vx: Math.cos(angle) * speed,
-			vy: Math.sin(angle) * speed,
+			z,
+			vx: cosTheta * cosPhi * speed,
+			vy: sinTheta * cosPhi * speed,
+			vz: sinPhi * speed * 0.05, // Scale vz since it's in layers/s not px/s
 			speed,
-			angle,
-			layer,
+			angle: theta,
 			size
 		};
 

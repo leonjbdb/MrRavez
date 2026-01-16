@@ -57,7 +57,7 @@ interface OrbFieldProps {
  */
 export function OrbField({
 	visible = true,
-	layer: initialLayer = 0,
+	layer: initialLayer = 10, // Start in middle layer (of 20) for 3D movement
 	opacity = DEFAULT_ORBFIELD_CONFIG.defaultOpacity,
 	revealConfig: revealOverrides,
 	styleConfig: styleOverrides,
@@ -207,7 +207,7 @@ export function OrbField({
 				OrbPhysics.markOrbCircular(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
 			}
 
-			// Phase 2: Check border/wall collisions for each orb
+			// Phase 2: Check border/wall collisions for each orb (3D)
 			for (const orb of currentOrbs) {
 				// Temporarily clear this orb's cells to check collision with walls and other orbs
 				OrbPhysics.clearOrbCircular(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
@@ -218,8 +218,8 @@ export function OrbField({
 				OrbPhysics.markOrbCircular(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
 
 				if (collision.blocked) {
-					// Apply reflection on colliding axes (walls/borders)
-					CollisionSystem.applyReflection(orb, collision.reflectX, collision.reflectY);
+					// Apply reflection on all 3 colliding axes (walls/borders)
+					CollisionSystem.applyReflection(orb, collision.reflectX, collision.reflectY, collision.reflectZ);
 				}
 			}
 

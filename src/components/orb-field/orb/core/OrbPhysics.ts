@@ -15,7 +15,7 @@ import { type Orb } from '../types';
 export class OrbPhysics {
 	/**
 	 * Updates an orb's position based on its velocity and delta time.
-	 * Uses frame-rate independent calculation.
+	 * Uses frame-rate independent calculation for all 3 axes.
 	 *
 	 * @param orb - The orb to update.
 	 * @param deltaTime - Time elapsed since last frame in seconds.
@@ -23,6 +23,7 @@ export class OrbPhysics {
 	static updatePosition(orb: Orb, deltaTime: number): void {
 		orb.pxX += orb.vx * deltaTime;
 		orb.pxY += orb.vy * deltaTime;
+		orb.z += orb.vz * deltaTime;
 	}
 
 	/**
@@ -41,7 +42,7 @@ export class OrbPhysics {
 	}
 
 	/**
-	 * Applies smooth speed limiting to an orb.
+	 * Applies smooth speed limiting to an orb in 3D.
 	 * If the orb exceeds its max speed, gradually decelerates with a smooth curve.
 	 * Uses exponential interpolation for natural-feeling deceleration.
 	 *
@@ -58,7 +59,9 @@ export class OrbPhysics {
 		decelerationRate: number,
 		deltaTime: number
 	): void {
-		const currentSpeed = Math.sqrt(orb.vx * orb.vx + orb.vy * orb.vy);
+		// Calculate 3D speed (vz is in layers/sec, scale to match XY)
+		const vzScaled = orb.vz * 20; // Scale Z velocity to be comparable to XY
+		const currentSpeed = Math.sqrt(orb.vx * orb.vx + orb.vy * orb.vy + vzScaled * vzScaled);
 		if (currentSpeed < 0.001) return; // Avoid division by zero
 
 		const maxSpeed = this.getMaxSpeed(orb.size, baseMaxSpeed, minMaxSpeed);
@@ -76,9 +79,10 @@ export class OrbPhysics {
 			const scale = newSpeed / currentSpeed;
 			orb.vx *= scale;
 			orb.vy *= scale;
+			orb.vz *= scale;
 
-			// Update the orb's stored speed value
-			orb.speed = newSpeed;
+			// Update the orb's stored speed value (XY plane for compatibility)
+			orb.speed = Math.sqrt(orb.vx * orb.vx + orb.vy * orb.vy);
 		}
 	}
 
@@ -114,18 +118,20 @@ export class OrbPhysics {
 	): void {
 		const cellX = ((orb.pxX * invCellSizeX) | 0) + startCellX;
 		const cellY = ((orb.pxY * invCellSizeY) | 0) + startCellY;
+		const layer = Math.round(orb.z);
 
-		grid.setCell(cellX, cellY, orb.layer, CELL_FILLED);
+		grid.setCell(cellX, cellY, layer, CELL_FILLED);
 	}
 
 	/**
-	 * Marks cells in a circular pattern based on orb size.
+	 * Marks cells in a 3D spherical pattern based on orb size.
 	 * 
-	 * For multi-cell orbs (size > 1), marks all cells within the circular
-	 * radius. Uses efficient circle rasterization with pre-computed offsets.
-	 * Also marks an avoidance zone (proximity field) around the orb.
+	 * Orbs are 3D spheres that span multiple layers:
+	 * - Size 1: 1x1x1 (single cell)
+	 * - Size 2: 3D plus shape (extends 1 cell in each direction including Z)
+	 * - Size 3+: Full 3D sphere
 	 * 
-	 * Uses addCellFlag so proximity and filled can coexist in the same cell.
+	 * Also marks a 3D avoidance zone around the orb.
 	 * 
 	 * @param grid - The spatial grid instance.
 	 * @param orb - The orb to mark.
@@ -144,33 +150,37 @@ export class OrbPhysics {
 	): void {
 		const centerCellX = ((orb.pxX * invCellSizeX) | 0) + startCellX;
 		const centerCellY = ((orb.pxY * invCellSizeY) | 0) + startCellY;
+		const centerLayer = Math.round(orb.z);
 
 		// Radius is size - 1, ensuring each size is distinct:
-		// Size 1 → radius 0 (1 cell), Size 2 → radius 1 (5 cells), etc.
+		// Size 1 → radius 0 (1 cell), Size 2 → radius 1, etc.
 		const radius = orb.size - 1;
 
 		// Avoidance zone scales with orb size but with diminishing returns
-		// Uses square root for sublinear growth: sqrt(size) + 1
-		// Size 1 → ~2 cells, Size 4 → ~3 cells, Size 9 → ~4 cells, Size 16 → ~5 cells
 		const avoidanceRadius = Math.floor(Math.sqrt(orb.size) + radius + 1);
 
-		// First pass: Mark avoidance zone (yellow cells)
-		for (let dy = -avoidanceRadius; dy <= avoidanceRadius; dy++) {
-			for (let dx = -avoidanceRadius; dx <= avoidanceRadius; dx++) {
-				const distSq = dx * dx + dy * dy;
-				// Mark cells in avoidance ring (beyond orb but within avoidance radius)
-				if (distSq > radius * radius && distSq <= avoidanceRadius * avoidanceRadius) {
-					grid.addCellFlag(centerCellX + dx, centerCellY + dy, orb.layer, CELL_PROXIMITY);
+		// 3D sphere marking - iterate over all three axes
+		// First pass: Mark avoidance zone (yellow cells) in 3D
+		for (let dz = -avoidanceRadius; dz <= avoidanceRadius; dz++) {
+			for (let dy = -avoidanceRadius; dy <= avoidanceRadius; dy++) {
+				for (let dx = -avoidanceRadius; dx <= avoidanceRadius; dx++) {
+					const distSq = dx * dx + dy * dy + dz * dz;
+					// Mark cells in avoidance shell (beyond orb but within avoidance radius)
+					if (distSq > radius * radius && distSq <= avoidanceRadius * avoidanceRadius) {
+						grid.addCellFlag(centerCellX + dx, centerCellY + dy, centerLayer + dz, CELL_PROXIMITY);
+					}
 				}
 			}
 		}
 
-		// Second pass: Mark orb cells (red cells)
-		for (let dy = -radius; dy <= radius; dy++) {
-			for (let dx = -radius; dx <= radius; dx++) {
-				// Check if cell is within circular boundary
-				if (dx * dx + dy * dy <= radius * radius) {
-					grid.addCellFlag(centerCellX + dx, centerCellY + dy, orb.layer, CELL_FILLED);
+		// Second pass: Mark orb cells (red cells) in 3D
+		for (let dz = -radius; dz <= radius; dz++) {
+			for (let dy = -radius; dy <= radius; dy++) {
+				for (let dx = -radius; dx <= radius; dx++) {
+					// Check if cell is within 3D spherical boundary
+					if (dx * dx + dy * dy + dz * dz <= radius * radius) {
+						grid.addCellFlag(centerCellX + dx, centerCellY + dy, centerLayer + dz, CELL_FILLED);
+					}
 				}
 			}
 		}
@@ -197,13 +207,14 @@ export class OrbPhysics {
 	): void {
 		const cellX = ((orb.pxX * invCellSizeX) | 0) + startCellX;
 		const cellY = ((orb.pxY * invCellSizeY) | 0) + startCellY;
+		const layer = Math.round(orb.z);
 
-		grid.removeCellFlag(cellX, cellY, orb.layer, CELL_FILLED);
-		grid.removeCellFlag(cellX, cellY, orb.layer, CELL_PROXIMITY);
+		grid.removeCellFlag(cellX, cellY, layer, CELL_FILLED);
+		grid.removeCellFlag(cellX, cellY, layer, CELL_PROXIMITY);
 	}
 
 	/**
-	 * Clears an orb's circular footprint from the spatial grid.
+	 * Clears an orb's 3D spherical footprint from the spatial grid.
 	 * 
 	 * Uses removeCellFlag to only remove this orb's flags without
 	 * affecting other orbs or border flags.
@@ -225,24 +236,29 @@ export class OrbPhysics {
 	): void {
 		const centerCellX = ((orb.pxX * invCellSizeX) | 0) + startCellX;
 		const centerCellY = ((orb.pxY * invCellSizeY) | 0) + startCellY;
+		const centerLayer = Math.round(orb.z);
 		const radius = orb.size - 1;
 		const avoidanceRadius = Math.floor(Math.sqrt(orb.size) + radius + 1);
 
-		// Clear avoidance zone flags
-		for (let dy = -avoidanceRadius; dy <= avoidanceRadius; dy++) {
-			for (let dx = -avoidanceRadius; dx <= avoidanceRadius; dx++) {
-				const distSq = dx * dx + dy * dy;
-				if (distSq > radius * radius && distSq <= avoidanceRadius * avoidanceRadius) {
-					grid.removeCellFlag(centerCellX + dx, centerCellY + dy, orb.layer, CELL_PROXIMITY);
+		// Clear 3D avoidance zone flags
+		for (let dz = -avoidanceRadius; dz <= avoidanceRadius; dz++) {
+			for (let dy = -avoidanceRadius; dy <= avoidanceRadius; dy++) {
+				for (let dx = -avoidanceRadius; dx <= avoidanceRadius; dx++) {
+					const distSq = dx * dx + dy * dy + dz * dz;
+					if (distSq > radius * radius && distSq <= avoidanceRadius * avoidanceRadius) {
+						grid.removeCellFlag(centerCellX + dx, centerCellY + dy, centerLayer + dz, CELL_PROXIMITY);
+					}
 				}
 			}
 		}
 
-		// Clear body flags
-		for (let dy = -radius; dy <= radius; dy++) {
-			for (let dx = -radius; dx <= radius; dx++) {
-				if (dx * dx + dy * dy <= radius * radius) {
-					grid.removeCellFlag(centerCellX + dx, centerCellY + dy, orb.layer, CELL_FILLED);
+		// Clear 3D body flags
+		for (let dz = -radius; dz <= radius; dz++) {
+			for (let dy = -radius; dy <= radius; dy++) {
+				for (let dx = -radius; dx <= radius; dx++) {
+					if (dx * dx + dy * dy + dz * dz <= radius * radius) {
+						grid.removeCellFlag(centerCellX + dx, centerCellY + dy, centerLayer + dz, CELL_FILLED);
+					}
 				}
 			}
 		}

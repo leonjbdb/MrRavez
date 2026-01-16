@@ -283,8 +283,8 @@ export class GridRenderer {
 		config: OrbDebugVisualConfig
 	): void {
 		for (const orb of orbs) {
-			// Only show orbs on the current layer
-			if (orb.layer !== currentLayer) continue;
+			// Show all orbs regardless of layer (they move in 3D)
+			// Opacity could be adjusted based on z-distance in the future
 
 			// Draw position indicator (1x1 pixel)
 			ctx.fillStyle = config.positionColor;

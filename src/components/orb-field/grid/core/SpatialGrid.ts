@@ -175,12 +175,14 @@ export class SpatialGrid {
 	}
 
 	/**
-	 * Initializes border cells around the edge of the grid.
-	 * Marks all edge cells as CELL_BORDER on all layers.
+	 * Initializes border cells around the XY edges of the grid.
+	 * Walls extend infinitely in Z - they exist on all layers.
+	 * There are NO front/back Z walls - orbs can move freely in Z.
 	 */
 	initializeBorder(): void {
 		const { cellsX, cellsY, layers } = this.config;
 
+		// XY border walls extend through ALL layers (infinite in Z)
 		for (let layer = 0; layer < layers; layer++) {
 			// Top and bottom edges
 			for (let x = 0; x < cellsX; x++) {
@@ -194,10 +196,16 @@ export class SpatialGrid {
 				this.setCell(cellsX - 1, y, layer, CELL_BORDER);
 			}
 		}
+		// No Z-axis walls - orbs move freely in the Z dimension
 	}
 
 	/**
-	 * Checks if a cell blocks movement (either CELL_FILLED or CELL_BORDER).
+	 * Checks if a cell blocks movement.
+	 * 
+	 * Returns true if:
+	 * - Cell is out of bounds (acts as invisible wall)
+	 * - Cell has CELL_FILLED flag (another orb)
+	 * - Cell has CELL_BORDER flag (edge wall)
 	 *
 	 * @param cellX - X-coordinate of the cell.
 	 * @param cellY - Y-coordinate of the cell.
@@ -205,6 +213,9 @@ export class SpatialGrid {
 	 * @returns True if the cell blocks movement.
 	 */
 	isBlocking(cellX: number, cellY: number, layer: number): boolean {
+		// Out of bounds = blocked (implicit walls at grid boundaries)
+		if (!this.isInBounds(cellX, cellY, layer)) return true;
+
 		const state = this.getCell(cellX, cellY, layer);
 		return hasCellFlag(state, CELL_FILLED) || hasCellFlag(state, CELL_BORDER);
 	}

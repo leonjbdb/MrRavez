@@ -3,10 +3,10 @@
 // =============================================================================
 
 /**
- * Represents an individual orb in the simulation.
+ * Represents an individual orb in the 3D simulation.
  *
- * Orbs have pixel-perfect positioning and velocity for smooth movement,
- * with additional metadata for layer, size, and direction tracking.
+ * Orbs have continuous 3D positioning and velocity for smooth movement,
+ * with additional metadata for size and direction tracking.
  */
 export interface Orb {
 	/** Unique identifier for the orb. */
@@ -18,21 +18,24 @@ export interface Orb {
 	/** Pixel Y position relative to the viewport origin. */
 	pxY: number;
 
+	/** Z position in layers (continuous, can be fractional). */
+	z: number;
+
 	/** X velocity component in pixels per second. */
 	vx: number;
 
 	/** Y velocity component in pixels per second. */
 	vy: number;
 
-	/** Speed magnitude in pixels per second. */
+	/** Z velocity component in layers per second. */
+	vz: number;
+
+	/** Speed magnitude in pixels per second (XY plane). */
 	speed: number;
 
-	/** Direction of travel in radians. */
+	/** Direction of travel in XY plane in radians. */
 	angle: number;
 
-	/** Depth layer index (Z-axis). */
-	layer: number;
-
-	/** Orb diameter in grid cells. */
+	/** Orb diameter in grid cells (3D sphere). */
 	size: number;
 }

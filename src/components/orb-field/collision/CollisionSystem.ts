@@ -2,13 +2,13 @@
 // CollisionSystem - Collision Detection and Resolution
 // =============================================================================
 
-import { CELL_EMPTY, hasCellFlag, CELL_FILLED, CELL_BORDER } from '../shared/types';
+import { hasCellFlag, CELL_FILLED, CELL_BORDER } from '../shared/types';
 import { SpatialGrid } from '../grid/core/SpatialGrid';
 import { type ViewportCells } from '../grid/types';
 import { type Orb } from '../orb/types';
 
 /**
- * Result of a collision check containing blocking status and reflection axes.
+ * Result of a 3D collision check containing blocking status and reflection axes.
  */
 export interface CollisionResult {
 	/** Whether any collision was detected. */
@@ -17,6 +17,8 @@ export interface CollisionResult {
 	reflectX: boolean;
 	/** Whether to reflect velocity on the Y-axis. */
 	reflectY: boolean;
+	/** Whether to reflect velocity on the Z-axis. */
+	reflectZ: boolean;
 }
 
 /**
@@ -27,11 +29,11 @@ export interface CollisionResult {
  */
 export class CollisionSystem {
 	/**
-	 * Checks if a move would result in collision and returns resolution.
+	 * Checks if a 3D move would result in collision and returns resolution.
 	 *
 	 * Performs axis-independent collision detection for proper corner handling.
-	 * Tests X-axis, Y-axis, and diagonal movement separately.
-	 * For multi-cell orbs (size > 1), checks the circular footprint.
+	 * Tests X-axis, Y-axis, Z-axis, and diagonal movements separately.
+	 * For multi-cell orbs (size > 1), checks the 3D spherical footprint.
 	 *
 	 * @param orb - The orb attempting to move.
 	 * @param deltaTime - Time elapsed since last frame in seconds.
@@ -47,63 +49,76 @@ export class CollisionSystem {
 	): CollisionResult {
 		const nextX = orb.pxX + orb.vx * deltaTime;
 		const nextY = orb.pxY + orb.vy * deltaTime;
+		const nextZ = orb.z + orb.vz * deltaTime;
 
 		const currCellX = ((orb.pxX * vpc.invCellSizeXPx) | 0) + vpc.startCellX;
 		const currCellY = ((orb.pxY * vpc.invCellSizeYPx) | 0) + vpc.startCellY;
+		const currLayer = Math.round(orb.z);
 		const nextCellX = ((nextX * vpc.invCellSizeXPx) | 0) + vpc.startCellX;
 		const nextCellY = ((nextY * vpc.invCellSizeYPx) | 0) + vpc.startCellY;
+		const nextLayer = Math.round(nextZ);
 
 		// For size 1 orbs, use simple single-cell collision
 		if (orb.size === 1) {
-			const blockedX = grid.isBlocking(nextCellX, currCellY, orb.layer);
-			const blockedY = grid.isBlocking(currCellX, nextCellY, orb.layer);
-			const blockedDiag = grid.isBlocking(nextCellX, nextCellY, orb.layer);
+			const blockedX = grid.isBlocking(nextCellX, currCellY, currLayer);
+			const blockedY = grid.isBlocking(currCellX, nextCellY, currLayer);
+			const blockedZ = grid.isBlocking(currCellX, currCellY, nextLayer);
+			const blockedDiag = grid.isBlocking(nextCellX, nextCellY, nextLayer);
 
 			return {
-				blocked: blockedX || blockedY || blockedDiag,
+				blocked: blockedX || blockedY || blockedZ || blockedDiag,
 				reflectX: blockedX || (blockedDiag && nextCellX !== currCellX),
 				reflectY: blockedY || (blockedDiag && nextCellY !== currCellY),
+				reflectZ: blockedZ || (blockedDiag && nextLayer !== currLayer),
 			};
 		}
 
-		// For multi-cell orbs, check circular footprint
+		// For multi-cell orbs, check 3D spherical footprint
 		// Radius is size - 1, ensuring each size is distinct
 		const radius = orb.size - 1;
 		let blockedX = false;
 		let blockedY = false;
+		let blockedZ = false;
 
-		// Check cells in circular footprint at next position
-		for (let dy = -radius; dy <= radius; dy++) {
-			for (let dx = -radius; dx <= radius; dx++) {
-				if (dx * dx + dy * dy <= radius * radius) {
-					// Check X-axis movement
-					if (grid.isBlocking(nextCellX + dx, currCellY + dy, orb.layer)) {
-						blockedX = true;
-					}
-					// Check Y-axis movement
-					if (grid.isBlocking(currCellX + dx, nextCellY + dy, orb.layer)) {
-						blockedY = true;
+		// Check cells in 3D spherical footprint at next position
+		for (let dz = -radius; dz <= radius; dz++) {
+			for (let dy = -radius; dy <= radius; dy++) {
+				for (let dx = -radius; dx <= radius; dx++) {
+					if (dx * dx + dy * dy + dz * dz <= radius * radius) {
+						// Check X-axis movement
+						if (grid.isBlocking(nextCellX + dx, currCellY + dy, currLayer + dz)) {
+							blockedX = true;
+						}
+						// Check Y-axis movement
+						if (grid.isBlocking(currCellX + dx, nextCellY + dy, currLayer + dz)) {
+							blockedY = true;
+						}
+						// Check Z-axis movement
+						if (grid.isBlocking(currCellX + dx, currCellY + dy, nextLayer + dz)) {
+							blockedZ = true;
+						}
 					}
 				}
 			}
 		}
 
 		return {
-			blocked: blockedX || blockedY,
+			blocked: blockedX || blockedY || blockedZ,
 			reflectX: blockedX,
 			reflectY: blockedY,
+			reflectZ: blockedZ,
 		};
 	}
 
 	/**
-	 * Validates if spawning at a position is allowed.
+	 * Validates if spawning at a 3D position is allowed.
 	 *
 	 * Prevents spawning in occupied cells or on border walls.
-	 * For multi-cell orbs (size > 1), checks the entire circular footprint.
+	 * For multi-cell orbs (size > 1), checks the entire 3D spherical footprint.
 	 *
 	 * @param pxX - Pixel X position where spawn is attempted.
 	 * @param pxY - Pixel Y position where spawn is attempted.
-	 * @param layer - Z-layer for the spawn.
+	 * @param z - Z-layer for the spawn (continuous).
 	 * @param size - Size of the orb in grid cells.
 	 * @param grid - The spatial grid instance for occupancy queries.
 	 * @param vpc - Viewport cell metrics for coordinate conversion.
@@ -112,30 +127,34 @@ export class CollisionSystem {
 	static canSpawn(
 		pxX: number,
 		pxY: number,
-		layer: number,
+		z: number,
 		size: number,
 		grid: SpatialGrid,
 		vpc: ViewportCells
 	): boolean {
 		const centerCellX = ((pxX * vpc.invCellSizeXPx) | 0) + vpc.startCellX;
 		const centerCellY = ((pxY * vpc.invCellSizeYPx) | 0) + vpc.startCellY;
+		const centerLayer = Math.round(z);
 
-		// For size 1 orbs, check single cell
+		// For size 1 orbs, check single cell - only block on FILLED or BORDER
 		if (size === 1) {
-			return grid.getCell(centerCellX, centerCellY, layer) === CELL_EMPTY;
+			const state = grid.getCell(centerCellX, centerCellY, centerLayer);
+			return !hasCellFlag(state, CELL_FILLED) && !hasCellFlag(state, CELL_BORDER);
 		}
 
-		// For multi-cell orbs, check circular footprint
+		// For multi-cell orbs, check 3D spherical footprint
 		// Radius is size - 1, ensuring each size is distinct
 		const radius = size - 1;
 
-		for (let dy = -radius; dy <= radius; dy++) {
-			for (let dx = -radius; dx <= radius; dx++) {
-				if (dx * dx + dy * dy <= radius * radius) {
-					const state = grid.getCell(centerCellX + dx, centerCellY + dy, layer);
-					// Check if cell has blocking flags (FILLED or BORDER)
-					if (hasCellFlag(state, CELL_FILLED) || hasCellFlag(state, CELL_BORDER)) {
-						return false;
+		for (let dz = -radius; dz <= radius; dz++) {
+			for (let dy = -radius; dy <= radius; dy++) {
+				for (let dx = -radius; dx <= radius; dx++) {
+					if (dx * dx + dy * dy + dz * dz <= radius * radius) {
+						const state = grid.getCell(centerCellX + dx, centerCellY + dy, centerLayer + dz);
+						// Check if cell has blocking flags (FILLED or BORDER)
+						if (hasCellFlag(state, CELL_FILLED) || hasCellFlag(state, CELL_BORDER)) {
+							return false;
+						}
 					}
 				}
 			}
@@ -145,7 +164,7 @@ export class CollisionSystem {
 	}
 
 	/**
-	 * Applies collision response to orb velocity.
+	 * Applies 3D collision response to orb velocity.
 	 *
 	 * Reflects velocity components on specified axes.
 	 * Call this after detecting a collision via checkMove().
@@ -153,18 +172,21 @@ export class CollisionSystem {
 	 * @param orb - The orb to update.
 	 * @param reflectX - Whether to reflect X-axis velocity.
 	 * @param reflectY - Whether to reflect Y-axis velocity.
+	 * @param reflectZ - Whether to reflect Z-axis velocity.
 	 */
 	static applyReflection(
 		orb: Orb,
 		reflectX: boolean,
-		reflectY: boolean
+		reflectY: boolean,
+		reflectZ: boolean = false
 	): void {
 		if (reflectX) orb.vx = -orb.vx;
 		if (reflectY) orb.vy = -orb.vy;
+		if (reflectZ) orb.vz = -orb.vz;
 	}
 
 	/**
-	 * Applies soft repulsion forces when orbs' avoidance zones overlap.
+	 * Applies soft 3D repulsion forces when orbs' avoidance zones overlap.
 	 * 
 	 * The closer orbs get, the stronger the repulsion force.
 	 * Force is mass-weighted so larger orbs push smaller orbs more.
@@ -183,18 +205,18 @@ export class CollisionSystem {
 				const orbA = orbs[i];
 				const orbB = orbs[j];
 
-				// Skip if on different layers
-				if (orbA.layer !== orbB.layer) continue;
-
-				// Calculate distance between centers in cells
+				// Calculate 3D distance between centers in cells
 				const cellAX = orbA.pxX * vpc.invCellSizeXPx;
 				const cellAY = orbA.pxY * vpc.invCellSizeYPx;
+				const cellAZ = orbA.z;
 				const cellBX = orbB.pxX * vpc.invCellSizeXPx;
 				const cellBY = orbB.pxY * vpc.invCellSizeYPx;
+				const cellBZ = orbB.z;
 
 				const dx = cellBX - cellAX;
 				const dy = cellBY - cellAY;
-				const distSq = dx * dx + dy * dy;
+				const dz = cellBZ - cellAZ;
+				const distSq = dx * dx + dy * dy + dz * dz;
 
 				if (distSq < 0.001) continue; // Avoid division by zero
 
@@ -221,9 +243,10 @@ export class CollisionSystem {
 					// Quadratic falloff for smooth repulsion (stronger when closer)
 					const force = overlap * overlap * repulsionStrength;
 
-					// Direction from A to B (normalized)
+					// Direction from A to B (normalized) in 3D
 					const nx = dx / dist;
 					const ny = dy / dist;
+					const nz = dz / dist;
 
 					// Mass-weighted repulsion (smaller orbs get pushed more)
 					const massA = orbA.size;
@@ -233,23 +256,25 @@ export class CollisionSystem {
 					const forceA = force * (massB / totalMass);
 					const forceB = force * (massA / totalMass);
 
-					// Apply repulsion (push orbs apart)
+					// Apply 3D repulsion (push orbs apart)
 					orbA.vx -= forceA * nx;
 					orbA.vy -= forceA * ny;
+					orbA.vz -= forceA * nz;
 					orbB.vx += forceB * nx;
 					orbB.vy += forceB * ny;
+					orbB.vz += forceB * nz;
 				}
 			}
 		}
 	}
 
 	/**
-	 * Resolves orb-orb collisions with mass-weighted elastic bounce.
+	 * Resolves 3D orb-orb collisions with mass-weighted elastic bounce.
 	 * 
 	 * Checks all pairs of orbs for overlap and applies impulses based on
 	 * their relative masses (size). Larger orbs affect smaller orbs more.
 	 * 
-	 * Uses the elastic collision formula:
+	 * Uses the elastic collision formula in 3D:
 	 * v1' = v1 - (2*m2/(m1+m2)) * dot(v1-v2, n) * n
 	 * v2' = v2 + (2*m1/(m1+m2)) * dot(v1-v2, n) * n
 	 * 
@@ -265,18 +290,18 @@ export class CollisionSystem {
 				const orbA = orbs[i];
 				const orbB = orbs[j];
 
-				// Skip if on different layers
-				if (orbA.layer !== orbB.layer) continue;
-
-				// Calculate distance between centers in cells
+				// Calculate 3D distance between centers in cells
 				const cellAX = orbA.pxX * vpc.invCellSizeXPx;
 				const cellAY = orbA.pxY * vpc.invCellSizeYPx;
+				const cellAZ = orbA.z;
 				const cellBX = orbB.pxX * vpc.invCellSizeXPx;
 				const cellBY = orbB.pxY * vpc.invCellSizeYPx;
+				const cellBZ = orbB.z;
 
 				const dx = cellBX - cellAX;
 				const dy = cellBY - cellAY;
-				const distSq = dx * dx + dy * dy;
+				const dz = cellBZ - cellAZ;
+				const distSq = dx * dx + dy * dy + dz * dz;
 
 				// Combined radius (in cells) - orbs touch when distance <= sum of radii + 1
 				const radiusA = orbA.size - 1;
@@ -288,18 +313,20 @@ export class CollisionSystem {
 					const dist = Math.sqrt(distSq);
 					const nx = dx / dist;
 					const ny = dy / dist;
+					const nz = dz / dist;
 
 					// Use size as mass (larger orbs have more momentum)
 					const massA = orbA.size;
 					const massB = orbB.size;
 					const totalMass = massA + massB;
 
-					// Relative velocity of A with respect to B
+					// Relative velocity of A with respect to B in 3D
 					const dvx = orbA.vx - orbB.vx;
 					const dvy = orbA.vy - orbB.vy;
+					const dvz = orbA.vz - orbB.vz;
 
 					// Relative velocity in collision normal direction
-					const dvn = dvx * nx + dvy * ny;
+					const dvn = dvx * nx + dvy * ny + dvz * nz;
 
 					// Only resolve if objects are approaching each other
 					if (dvn > 0) {
@@ -310,8 +337,10 @@ export class CollisionSystem {
 
 						orbA.vx -= impulseA * nx;
 						orbA.vy -= impulseA * ny;
+						orbA.vz -= impulseA * nz;
 						orbB.vx += impulseB * nx;
 						orbB.vy += impulseB * ny;
+						orbB.vz += impulseB * nz;
 					}
 				}
 			}

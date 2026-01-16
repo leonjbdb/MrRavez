@@ -121,11 +121,11 @@ export function OrbDebugPanel({
 						borderTop: '1px solid #333',
 					}}
 				>
-					Pos: {selectedOrb.pxX.toFixed(0)}, {selectedOrb.pxY.toFixed(0)}px
+					Pos: {selectedOrb.pxX.toFixed(0)}, {selectedOrb.pxY.toFixed(0)}, z={selectedOrb.z.toFixed(1)}
 					<br />
-					Layer: {selectedOrb.layer} | Size: {selectedOrb.size}
+					Size: {selectedOrb.size} | Speed: {selectedOrb.speed.toFixed(1)} px/s
 					<br />
-					Speed: {selectedOrb.speed.toFixed(1)} px/s
+					Vel: vx={selectedOrb.vx.toFixed(1)}, vy={selectedOrb.vy.toFixed(1)}, vz={selectedOrb.vz.toFixed(2)}
 				</div>
 			)}
 
