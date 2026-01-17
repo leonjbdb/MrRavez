@@ -19,22 +19,40 @@ export function GlassSlider({ visible, opacity = 1, onSlideComplete }: GlassSlid
     const trackRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState(0); // 0 = left, 1 = right
     const [isDragging, setIsDragging] = useState(false);
+    const [isHovering, setIsHovering] = useState(false);
     const [hasAppeared, setHasAppeared] = useState(false);
+    const [hasEverShown, setHasEverShown] = useState(false);
+    const [canShowFirstTime, setCanShowFirstTime] = useState(false);
     
     // Refs for animation
     const animationRef = useRef<number | null>(null);
     const velocityRef = useRef(0);
     const dragStartRef = useRef<{ x: number; startPosition: number } | null>(null);
 
+    // Handle first-time delay (10 seconds)
+    useEffect(() => {
+        if (opacity > 0.01 && !hasEverShown) {
+            // First time seeing the slider - wait 10 seconds
+            const delayTimer = setTimeout(() => {
+                setCanShowFirstTime(true);
+                setHasEverShown(true);
+            }, 10000);
+            return () => clearTimeout(delayTimer);
+        }
+    }, [opacity, hasEverShown]);
+
     // Handle visibility fade-in based on opacity
     useEffect(() => {
-        if (opacity > 0.01 && !hasAppeared) {
+        // If we've shown before, OR if it's first time and delay is complete
+        const shouldShow = hasEverShown || canShowFirstTime;
+        
+        if (opacity > 0.01 && !hasAppeared && shouldShow) {
             // Small delay to ensure smooth fade-in
             const timer = setTimeout(() => setHasAppeared(true), 50);
             return () => clearTimeout(timer);
         }
         // Keep hasAppeared true even when fading out to allow smooth transition
-    }, [opacity, hasAppeared]);
+    }, [opacity, hasAppeared, hasEverShown, canShowFirstTime]);
 
     // Cancel any ongoing animation
     const cancelAnimation = useCallback(() => {
@@ -236,6 +254,8 @@ export function GlassSlider({ visible, opacity = 1, onSlideComplete }: GlassSlid
                     userSelect: "none",
                     WebkitUserSelect: "none",
                     touchAction: "none",
+                    perspective: "1200px",
+                    transformStyle: "preserve-3d",
                 }}
             >
                 {/* Top edge highlight */}
@@ -252,51 +272,38 @@ export function GlassSlider({ visible, opacity = 1, onSlideComplete }: GlassSlid
                     }}
                 />
 
-                {/* Inner track groove */}
-                <div
-                    style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: padding + handleWidth / 2,
-                        right: padding + handleWidth / 2,
-                        height: 4,
-                        transform: "translateY(-50%)",
-                        background: "rgba(255, 255, 255, 0.06)",
-                        borderRadius: 2,
-                        boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.2)",
-                        pointerEvents: "none",
-                    }}
-                />
-
                 {/* Draggable handle - pill shape */}
                 <div
                     onMouseDown={handleMouseDown}
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
+                    onMouseEnter={() => setIsHovering(true)}
+                    onMouseLeave={() => setIsHovering(false)}
                     style={{
                         position: "absolute",
                         top: "50%",
                         left: handleLeft,
-                        transform: "translateY(-50%)",
+                        transform: isDragging 
+                            ? "translateY(-50%) translateZ(50px) scale(1.05)" 
+                            : "translateY(-50%) scale(1)",
                         width: handleWidth,
                         height: handleHeight,
                         borderRadius: handleHeight / 2,
-                        background: "rgba(255, 255, 255, 0.15)",
+                        background: isHovering || isDragging ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.04)",
                         backdropFilter: "blur(12px)",
                         WebkitBackdropFilter: "blur(12px)",
-                        border: "1px solid rgba(255, 255, 255, 0.25)",
-                        boxShadow: `
-                            0 4px 12px rgba(0, 0, 0, 0.3),
-                            0 2px 4px rgba(0, 0, 0, 0.2),
-                            inset 0 1px 0 rgba(255, 255, 255, 0.3)
-                        `,
+                        border: isHovering || isDragging ? "1px solid rgba(255, 255, 255, 0.3)" : "1px solid rgba(255, 255, 255, 0.08)",
+                        boxShadow: isDragging
+                            ? "0 12px 32px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.3)"
+                            : "0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
                         cursor: isDragging ? "grabbing" : "grab",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        transition: isDragging ? "none" : "box-shadow 0.2s ease",
-                        willChange: "left",
+                        transition: "transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease",
+                        willChange: "left, transform",
+                        transformStyle: "preserve-3d",
                     }}
                 >
                     {/* Arrow icon */}
@@ -305,13 +312,15 @@ export function GlassSlider({ visible, opacity = 1, onSlideComplete }: GlassSlid
                         height="20"
                         viewBox="0 0 24 24"
                         fill="none"
-                        stroke="rgba(255, 255, 255, 0.9)"
+                        stroke={isHovering || isDragging ? "var(--color-maroon, #4E0506)" : "var(--color-white, #ffffff)"}
                         strokeWidth="2.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         style={{
                             transform: `rotate(${arrowRotation}deg)`,
-                            transition: isDragging ? "none" : "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                            transition: isDragging 
+                                ? "none" 
+                                : "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.25s ease",
                         }}
                     >
                         <path d="M9 18l6-6-6-6" />
