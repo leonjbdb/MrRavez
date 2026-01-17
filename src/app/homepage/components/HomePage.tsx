@@ -1,11 +1,12 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useTheme } from "@/components/providers";
-import { OrbField } from "@/components/orb-field";
 import { ScrollDotIndicator } from "@/components/ui/ScrollDotIndicator";
+import { GridView } from "@/components/orb-field";
+import { GlassSlider } from "@/components/glass";
 import {
     useAnimationStages,
-    useMousePosition,
     useCardTransition,
     useSectionVisibility,
 } from "../hooks";
@@ -31,11 +32,14 @@ export function HomePage({ initialSection }: HomePageProps) {
     // Skip animation when starting from a specific section
     const skipAnimation = initialSection !== undefined;
 
+    // Track when grid animation completes (for skipAnimation case)
+    const [gridAnimationComplete, setGridAnimationComplete] = useState(false);
+    const handleGridAnimationComplete = useCallback(() => {
+        setGridAnimationComplete(true);
+    }, []);
+
     // Animation stage management (intro sequence)
     const { stage, isReady } = useAnimationStages({ skipAnimation });
-
-    // Mouse position for orb field interaction
-    const mousePos = useMousePosition();
 
     // Unified card transition system - handles scroll, keyboard, dots, touch
     const {
@@ -43,7 +47,6 @@ export function HomePage({ initialSection }: HomePageProps) {
         activeSection,
         hasPassedGreeting,
         isMobile,
-        scrollDelta,
         handleDotClick,
     } = useCardTransition({ enabled: isReady, initialSection });
 
@@ -56,7 +59,8 @@ export function HomePage({ initialSection }: HomePageProps) {
     });
 
     // Dynamic background based on theme
-    const homepageBackground = stage >= 2 ? (theme === "light" ? "#e8e4e0" : "#000000") : undefined;
+    // When stage >= 2, background is transparent (via CSS) to show orbs through
+    const homepageBackground = stage >= 2 ? "transparent" : "#000000";
 
     return (
         <>
@@ -76,13 +80,20 @@ export function HomePage({ initialSection }: HomePageProps) {
                 }
             `}</style>
 
+            {/* 3D Spatial Grid - Show from the beginning to play roll animation */}
+            {/* Burst triggers at stage 2 (when Hi! bursts) OR when grid animation completes (skip case) */}
+            <GridView 
+                visible={true} 
+                triggerBurst={stage >= 2 || (skipAnimation && gridAnimationComplete)}
+                onAnimationComplete={handleGridAnimationComplete}
+                scrollProgress={scrollProgress}
+                isMobile={isMobile}
+            />
+
             <main
                 className={`${styles.homepage} ${stage >= 2 ? styles.homepagePopped : ""}`}
                 style={{ background: homepageBackground }}
             >
-                {/* Background orb field - reacts to scroll */}
-                <OrbField visible={stage >= 2} mouseX={mousePos.x} mouseY={mousePos.y} scrollDelta={scrollDelta} isMobile={isMobile} />
-
                 {/* Greeting section ("Hi!" and "Welcome...") - only show if not skipping */}
                 {!skipAnimation && stage < 7 && (
                     <GreetingSection
@@ -92,17 +103,33 @@ export function HomePage({ initialSection }: HomePageProps) {
                 )}
 
                 {/* Card carousel (Profile, Links, Contact) */}
-                <CardCarousel visibility={visibility} isReady={isReady} />
+                {/* When skipping animation, wait for grid animation to complete before showing cards */}
+                <CardCarousel 
+                    visibility={visibility} 
+                    isReady={skipAnimation ? gridAnimationComplete : isReady} 
+                />
 
                 {/* Dot navigation indicator */}
                 <ScrollDotIndicator
                     totalSections={3}
                     activeSection={activeSection}
                     onDotClick={handleDotClick}
-                    visible={isReady}
+                    visible={skipAnimation ? gridAnimationComplete : isReady}
                     theme={theme}
                 />
             </main>
+
+            {/* Glass slider - OUTSIDE main to avoid stacking context issues */}
+            <GlassSlider 
+                visible={visibility.contact.entryProgress > 0}
+                opacity={
+                    visibility.contact.entryProgress === 1 
+                        ? 1  // Always full opacity when fully entered
+                        : visibility.contact.entryProgress > 0 
+                            ? visibility.contact.entryProgress  // Fade in with entry progress
+                            : 0
+                }
+            />
         </>
     );
 }

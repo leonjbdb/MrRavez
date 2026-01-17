@@ -318,16 +318,19 @@ export function GlassCard({
         // Mobile 3D wheel carousel transform
         // Cards rotate on a horizontal cylinder, creating a Ferris wheel effect
         // Order: centering -> wheel position -> wheel rotation -> scale
+        // Shifted up by 40px (-50% -> -50% - 40px) to make room for bottom UI
         combinedTransform = `
-            translate3d(calc(-50% + ${wheelTranslateX}px), -50%, ${wheelTranslateZ}px)
+            translate3d(calc(-50% + ${wheelTranslateX}px), calc(-50% - 40px), ${wheelTranslateZ}px)
             rotateY(${wheelRotateY}deg)
             scale3d(${mobileScale}, ${mobileScale}, 1)
         `.replace(/\s+/g, ' ').trim();
     } else {
         // Desktop or legacy mobile: vertical scroll animations
         // Order: centering -> mobile offset -> vertical animation -> scale -> rotation
+        // On mobile, shift up by 40px to make room for bottom UI
+        const verticalShift = isTouchDevice ? "- 40px" : "";
         combinedTransform = `
-            translate3d(calc(-50% + ${mobileOffset}vw), calc(-50% + ${finalTranslateY}px), 0)
+            translate3d(calc(-50% + ${mobileOffset}vw), calc(-50% + ${finalTranslateY}px ${verticalShift}), 0)
             scale3d(${finalScale}, ${finalScale}, 1)
             rotateX(${finalRotateX}deg)
         `.replace(/\s+/g, ' ').trim();

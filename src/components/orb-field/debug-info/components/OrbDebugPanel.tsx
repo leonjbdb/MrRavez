@@ -1,0 +1,198 @@
+"use client";
+
+// =============================================================================
+// OrbDebugPanel - Debug UI for Orb System Management
+// =============================================================================
+
+import { type Orb } from '../../orb/types';
+import { DEFAULT_ORB_SPAWN_CONFIG } from '../../orb/config';
+
+/**
+ * Props for the OrbDebugPanel component.
+ */
+interface OrbDebugPanelProps {
+	/** Current list of orbs in the system. */
+	orbs?: Orb[];
+	/** Target orb count (scales with screen size). */
+	targetOrbCount?: number;
+	/** Currently selected orb ID. */
+	selectedOrbId?: string | null;
+	/** Real-time data for the selected orb. */
+	selectedOrb?: Orb | null;
+	/** Current brush size for new orbs. */
+	orbSize?: number;
+	/** Callback when an orb is selected. */
+	onSelectOrb?: (id: string | null) => void;
+	/** Callback when an orb is deleted. */
+	onDeleteOrb?: (id: string) => void;
+	/** Callback when the brush size changes. */
+	onSizeChange?: (size: number) => void;
+}
+
+/**
+ * Debug panel for managing orbs.
+ *
+ * Features:
+ * - Orb selector dropdown
+ * - Real-time position and velocity display
+ * - Delete button for selected orb
+ * - Brush size slider for new orbs
+ *
+ * Only visible when debug mode is enabled.
+ */
+export function OrbDebugPanel({
+	orbs = [],
+	targetOrbCount,
+	selectedOrbId,
+	selectedOrb: selectedOrbProp,
+	orbSize = DEFAULT_ORB_SPAWN_CONFIG.defaultSize,
+	onSelectOrb,
+	onDeleteOrb,
+	onSizeChange,
+}: OrbDebugPanelProps) {
+	const handleSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const newSize = parseInt(e.target.value, 10);
+		onSizeChange?.(newSize);
+	};
+
+	// Use real-time prop if available, otherwise find in list
+	const selectedOrb = selectedOrbProp || orbs.find((o) => o.id === selectedOrbId);
+
+	const { minSize, maxSize } = DEFAULT_ORB_SPAWN_CONFIG;
+
+	const glassStyles: React.CSSProperties = {
+		background: "rgba(255, 255, 255, 0.08)",
+		backdropFilter: "blur(24px) saturate(120%)",
+		WebkitBackdropFilter: "blur(24px) saturate(120%)",
+		border: "1px solid rgba(255, 255, 255, 0.15)",
+		boxShadow: `
+			0 25px 50px rgba(0, 0, 0, 0.25),
+			0 10px 20px rgba(0, 0, 0, 0.15),
+			inset 0 1px 0 rgba(255, 255, 255, 0.2),
+			inset 0 -1px 0 rgba(0, 0, 0, 0.1)
+		`,
+	};
+
+	return (
+		<div
+			style={{
+				...glassStyles,
+				padding: 12,
+				borderRadius: 12,
+				color: 'rgba(255, 255, 255, 0.9)',
+				fontFamily: 'var(--font-mono), monospace',
+				fontSize: 11,
+				display: 'flex',
+				flexDirection: 'column',
+				gap: 8,
+				minWidth: 180,
+			}}
+		>
+			<div
+				style={{
+					fontWeight: 600,
+					fontSize: 12,
+					color: 'rgba(255, 255, 255, 0.9)',
+					borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+					paddingBottom: 8,
+					marginBottom: 4,
+				}}
+			>
+				Orb Debug ({orbs.length}{targetOrbCount ? ` / ${targetOrbCount}` : ''})
+			</div>
+
+			{/* Orb Selector */}
+			<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+				<label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+					<span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Select:</span>
+					<select
+						value={selectedOrbId || ''}
+						onChange={(e) => onSelectOrb?.(e.target.value || null)}
+						style={{
+							background: 'rgba(255, 255, 255, 0.1)',
+							color: 'rgba(255, 255, 255, 0.9)',
+							border: '1px solid rgba(255, 255, 255, 0.15)',
+							borderRadius: 6,
+							fontSize: 10,
+							padding: '4px 6px',
+							maxWidth: 100,
+							cursor: 'pointer',
+						}}
+					>
+						<option value="">None</option>
+						{orbs.map((orb, i) => (
+							<option key={orb.id} value={orb.id}>
+								Orb {i + 1} ({orb.size})
+							</option>
+						))}
+					</select>
+				</label>
+			</div>
+
+			{/* Selected Orb Info */}
+			{selectedOrb && (
+				<div
+					style={{
+						fontSize: 10,
+						color: 'rgba(255, 255, 255, 0.6)',
+						padding: '8px 0',
+						borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+					}}
+				>
+					Pos: {selectedOrb.pxX.toFixed(0)}, {selectedOrb.pxY.toFixed(0)}, z={selectedOrb.z.toFixed(1)}
+					<br />
+					Size: {selectedOrb.size} | Speed: {selectedOrb.speed.toFixed(1)} px/s
+					<br />
+					Vel: vx={selectedOrb.vx.toFixed(1)}, vy={selectedOrb.vy.toFixed(1)}, vz={selectedOrb.vz.toFixed(2)}
+				</div>
+			)}
+
+			{/* Delete Button */}
+			<div style={{ display: 'flex', gap: 4 }}>
+				<button
+					onClick={() => onDeleteOrb?.(selectedOrbId!)}
+					style={{
+						flex: 1,
+						background: 'rgba(170, 17, 17, 0.6)',
+						color: 'rgba(255, 255, 255, 0.9)',
+						border: '1px solid rgba(255, 255, 255, 0.15)',
+						borderRadius: 6,
+						padding: '6px 4px',
+						fontSize: 10,
+						cursor: selectedOrbId ? 'pointer' : 'not-allowed',
+						opacity: selectedOrbId ? 1 : 0.5,
+						transition: 'background 0.2s ease',
+					}}
+					disabled={!selectedOrbId}
+				>
+					Delete Selected
+				</button>
+			</div>
+
+			{/* Brush Size Slider */}
+			<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+				<label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+					<span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Brush Size:</span>
+					<span style={{ color: 'rgba(255, 255, 255, 0.9)' }}>{orbSize}</span>
+				</label>
+				<input
+					type="range"
+					min={minSize}
+					max={maxSize}
+					step={1}
+					value={orbSize}
+					onChange={handleSizeChange}
+					style={{ 
+						width: '100%', 
+						cursor: 'pointer',
+						accentColor: 'rgba(78, 5, 6, 0.8)',
+					}}
+				/>
+			</div>
+
+			<div style={{ fontSize: 9, color: 'rgba(255, 255, 255, 0.4)', fontStyle: 'italic', marginTop: 4 }}>
+				* Click grid to place orb
+			</div>
+		</div>
+	);
+}

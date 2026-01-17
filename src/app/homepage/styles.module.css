@@ -12,7 +12,10 @@
 }
 
 .homepagePopped {
-	background: var(--homepage-bg);
+	/* Transparent background to allow orbs to show through */
+	background: transparent !important;
+	/* Ensure glass cards appear above the orb canvas (z-index: 0) */
+	z-index: 1;
 }
 
 .themeToggleWrapper {
