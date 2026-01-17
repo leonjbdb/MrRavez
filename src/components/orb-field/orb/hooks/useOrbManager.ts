@@ -10,7 +10,20 @@ import { OrbPhysics } from '../core/OrbPhysics';
 import { SpatialGrid } from '../../grid/core/SpatialGrid';
 import { type ViewportCells } from '../../grid/types';
 import { DEFAULT_ORB_SPAWN_CONFIG, DEFAULT_ORB_BURST_CONFIG, DEFAULT_CONTINUOUS_SPAWN_CONFIG, type OrbSpawnConfig, type OrbBurstConfig, type ContinuousSpawnConfig } from '../config';
+import { DEFAULT_ORB_VISUAL_CONFIG } from '../visuals/OrbVisualConfig';
 import { CollisionSystem } from '../../collision/CollisionSystem';
+
+/**
+ * Generates random animation durations for an orb.
+ * Each orb gets unique spawn and despawn durations within the configured range.
+ */
+function generateAnimationDurations(): { spawnAnimDurationMs: number; despawnAnimDurationMs: number } {
+	const { spawnDurationMinMs, spawnDurationMaxMs, despawnDurationMinMs, despawnDurationMaxMs } = DEFAULT_ORB_VISUAL_CONFIG;
+	return {
+		spawnAnimDurationMs: spawnDurationMinMs + Math.random() * (spawnDurationMaxMs - spawnDurationMinMs),
+		despawnAnimDurationMs: despawnDurationMinMs + Math.random() * (despawnDurationMaxMs - despawnDurationMinMs),
+	};
+}
 
 interface UseOrbManagerOptions {
 	/** Configuration for orb spawning. */
@@ -98,6 +111,9 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 		const cosPhi = Math.cos(phi);
 		const sinPhi = Math.sin(phi);
 
+		// Generate random animation durations for this orb
+		const animDurations = generateAnimationDurations();
+
 		const newOrb: Orb = {
 			id: crypto.randomUUID(),
 			pxX,
@@ -111,6 +127,8 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 			size,
 			createdAt: performance.now(),
 			lifetimeMs: Infinity, // Manual spawns don't expire
+			spawnAnimDurationMs: animDurations.spawnAnimDurationMs,
+			despawnAnimDurationMs: animDurations.despawnAnimDurationMs,
 		};
 
 		orbsRef.current.push(newOrb);
@@ -243,6 +261,9 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 			// Random lifetime between min and max
 			const lifetimeMs = minLifetimeMs + Math.random() * (maxLifetimeMs - minLifetimeMs);
 
+			// Generate random animation durations for this orb
+			const animDurations = generateAnimationDurations();
+
 			// Create orb
 			const newOrb: Orb = {
 				id: crypto.randomUUID(),
@@ -257,6 +278,8 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 				size,
 				createdAt: performance.now(),
 				lifetimeMs,
+				spawnAnimDurationMs: animDurations.spawnAnimDurationMs,
+				despawnAnimDurationMs: animDurations.despawnAnimDurationMs,
 			};
 
 			// Mark on grid
@@ -346,6 +369,9 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 			// Random lifetime
 			const lifetimeMs = minLifetimeMs + Math.random() * (maxLifetimeMs - minLifetimeMs);
 
+			// Generate random animation durations for this orb
+			const animDurations = generateAnimationDurations();
+
 			const newOrb: Orb = {
 				id: crypto.randomUUID(),
 				pxX: spawnPos.x,
@@ -359,6 +385,8 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 				size,
 				createdAt: performance.now(),
 				lifetimeMs,
+				spawnAnimDurationMs: animDurations.spawnAnimDurationMs,
+				despawnAnimDurationMs: animDurations.despawnAnimDurationMs,
 			};
 
 			OrbPhysics.markOrbCircular(grid, newOrb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);

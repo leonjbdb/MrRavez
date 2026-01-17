@@ -366,11 +366,14 @@ export function OrbField({
 		if (visualCanvas && easedProgress >= 1) {
 			const visualCtx = visualCanvas.getContext('2d');
 			if (visualCtx) {
+				const now = performance.now();
 				OrbVisualRenderer.draw(
 					visualCtx,
 					ws,
 					orbsRef.current,
-					grid.config.layers
+					grid.config.layers,
+					undefined, // use default config
+					now       // current time for spawn/despawn animations
 				);
 			}
 		}

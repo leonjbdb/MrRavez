@@ -31,19 +31,22 @@ export class OrbVisualRenderer {
 	 * 
 	 * All orbs across ALL z-layers are rendered, sorted back-to-front.
 	 * Depth affects opacity and blur but does not filter visibility.
+	 * Spawn/despawn animations affect opacity and scale.
 	 *
 	 * @param ctx - The 2D canvas rendering context.
 	 * @param windowSize - Current window dimensions.
 	 * @param orbs - Array of orbs to render (from ALL layers).
 	 * @param totalLayers - Total number of z-layers in the system.
 	 * @param config - Visual configuration for orb appearance.
+	 * @param currentTime - Current timestamp from performance.now() for animations.
 	 */
 	static draw(
 		ctx: CanvasRenderingContext2D,
 		windowSize: WindowSize,
 		orbs: Orb[],
 		totalLayers: number,
-		config: OrbVisualConfig = DEFAULT_ORB_VISUAL_CONFIG
+		config: OrbVisualConfig = DEFAULT_ORB_VISUAL_CONFIG,
+		currentTime: number = performance.now()
 	): void {
 		const { width, height } = windowSize;
 
@@ -64,7 +67,7 @@ export class OrbVisualRenderer {
 
 		// Render ALL orbs (no layer filtering)
 		for (const orb of sortedOrbs) {
-			this.drawOrb(ctx, orb, totalLayers, config);
+			this.drawOrb(ctx, orb, totalLayers, config, currentTime);
 		}
 
 		// Reset composite operation
@@ -74,19 +77,28 @@ export class OrbVisualRenderer {
 	/**
 	 * Draws a single orb with radial gradient for glow and depth blur effect.
 	 * Uses Gaussian-like exponential decay for soft, natural-looking edges.
+	 * Applies spawn/despawn animation for smooth fade-in/out and scale effects.
 	 *
 	 * @param ctx - The 2D canvas rendering context.
 	 * @param orb - The orb to render.
 	 * @param totalLayers - Total number of z-layers.
 	 * @param config - Visual configuration.
+	 * @param currentTime - Current timestamp for animation calculations.
 	 */
 	private static drawOrb(
 		ctx: CanvasRenderingContext2D,
 		orb: Orb,
 		totalLayers: number,
-		config: OrbVisualConfig
+		config: OrbVisualConfig,
+		currentTime: number
 	): void {
 		const { pxX, pxY, z, size } = orb;
+
+		// Calculate animation factor (0 = invisible/small, 1 = fully visible/full size)
+		const animationFactor = this.calculateAnimationFactor(orb, currentTime, config);
+
+		// Skip rendering if fully invisible
+		if (animationFactor <= 0) return;
 
 		// Calculate depth factor (0 = closest, 1 = furthest)
 		const depthFactor = this.calculateDepthFactor(z, totalLayers);
@@ -99,10 +111,18 @@ export class OrbVisualRenderer {
 		const blurWidth = baseRadius * (config.blurWidthBase + depthFactor * config.blurWidthDepthScale);
 
 		// Total glow radius = core + blur region, scaled by glowSpread
-		const glowRadius = (baseRadius * config.coreRatio + blurWidth) * config.glowSpread;
+		let glowRadius = (baseRadius * config.coreRatio + blurWidth) * config.glowSpread;
 
-		// Calculate depth-based opacity
-		const opacity = this.lerp(config.maxOpacity, config.minOpacity, depthFactor);
+		// Apply animation scale factor
+		const scaleFactor = this.lerp(config.animationMinScale, 1, animationFactor);
+		glowRadius *= scaleFactor;
+
+		// Skip if radius is too small to render
+		if (glowRadius < 0.5) return;
+
+		// Calculate depth-based opacity, modulated by animation
+		const baseOpacity = this.lerp(config.maxOpacity, config.minOpacity, depthFactor);
+		const opacity = baseOpacity * animationFactor;
 
 		// Calculate depth-based falloff exponent
 		// Close orbs: higher exponent = sharper falloff = "in focus"
@@ -125,6 +145,61 @@ export class OrbVisualRenderer {
 		ctx.arc(pxX, pxY, glowRadius, 0, Math.PI * 2);
 		ctx.fillStyle = gradient;
 		ctx.fill();
+	}
+
+	/**
+	 * Calculates the animation factor for spawn/despawn effects.
+	 * 
+	 * Returns a value from 0 to 1:
+	 * - During spawn: 0 -> 1 over orb's spawnAnimDurationMs
+	 * - During active life: 1
+	 * - During despawn: 1 -> 0 over orb's despawnAnimDurationMs
+	 * 
+	 * Uses ease-out for spawn and ease-in for despawn for natural feel.
+	 *
+	 * @param orb - The orb being rendered (contains animation durations).
+	 * @param currentTime - Current timestamp.
+	 * @param config - Visual configuration with animation settings.
+	 * @returns Animation factor from 0 (invisible) to 1 (fully visible).
+	 */
+	private static calculateAnimationFactor(
+		orb: Orb,
+		currentTime: number,
+		config: OrbVisualConfig
+	): number {
+		const { createdAt, lifetimeMs, spawnAnimDurationMs, despawnAnimDurationMs } = orb;
+		const { animationEasePower } = config;
+		const age = currentTime - createdAt;
+
+		// Handle infinite lifetime orbs (manual spawns)
+		if (!isFinite(lifetimeMs)) {
+			// Only apply spawn animation
+			if (age < spawnAnimDurationMs) {
+				const t = age / spawnAnimDurationMs;
+				// Ease-out: 1 - (1-t)^power
+				return 1 - Math.pow(1 - t, animationEasePower);
+			}
+			return 1;
+		}
+
+		const timeRemaining = lifetimeMs - age;
+
+		// Spawn phase: fade in and grow
+		if (age < spawnAnimDurationMs) {
+			const t = age / spawnAnimDurationMs;
+			// Ease-out for spawn: starts fast, slows down
+			return 1 - Math.pow(1 - t, animationEasePower);
+		}
+
+		// Despawn phase: fade out and shrink
+		if (timeRemaining < despawnAnimDurationMs) {
+			const t = timeRemaining / despawnAnimDurationMs;
+			// Ease-in for despawn: starts slow, speeds up
+			return Math.pow(t, animationEasePower);
+		}
+
+		// Active phase: fully visible
+		return 1;
 	}
 
 	/**

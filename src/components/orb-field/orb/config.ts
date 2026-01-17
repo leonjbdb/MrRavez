@@ -116,8 +116,8 @@ export const DEFAULT_ORB_BURST_CONFIG: OrbBurstConfig = {
 	maxSize: 8,            // Cap at size 8
 	spawnRadiusPx: 150,    // Spawn within 150px radius from center
 	maxRetries: 20,        // Try up to 20 positions per orb
-	minSpeed: 50,          // Base min speed for size 1 orbs
-	maxSpeed: 150,         // Base max speed for size 1 orbs
+	minSpeed: 750,         // Base min speed for size 1 orbs (increased for explosion feel)
+	maxSpeed: 1000,         // Base max speed for size 1 orbs (increased for explosion feel)
 	minLifetimeMs: 10000,  // Minimum lifetime: 10 seconds
 	maxLifetimeMs: 180000, // Maximum lifetime: 3 minutes
 };

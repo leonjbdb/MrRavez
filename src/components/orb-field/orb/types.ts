@@ -44,4 +44,10 @@ export interface Orb {
 
 	/** Lifetime duration in milliseconds. */
 	lifetimeMs: number;
+
+	/** Spawn-in animation duration for this specific orb (milliseconds). */
+	spawnAnimDurationMs: number;
+
+	/** Despawn/fade-out animation duration for this specific orb (milliseconds). */
+	despawnAnimDurationMs: number;
 }

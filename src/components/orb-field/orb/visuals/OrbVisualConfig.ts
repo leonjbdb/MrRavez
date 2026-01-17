@@ -92,6 +92,47 @@ export interface OrbVisualConfig {
 
 	/** How much larger orbs scale with size (radius = baseRadiusPx * size^sizeExponent). */
 	sizeExponent: number;
+
+	// =========================================================================
+	// Spawn/Despawn Animation
+	// =========================================================================
+
+	/**
+	 * Minimum duration of the spawn-in animation in milliseconds.
+	 * Each orb gets a random duration between min and max.
+	 */
+	spawnDurationMinMs: number;
+
+	/**
+	 * Maximum duration of the spawn-in animation in milliseconds.
+	 * Each orb gets a random duration between min and max.
+	 */
+	spawnDurationMaxMs: number;
+
+	/**
+	 * Minimum duration of the despawn/fade-out animation in milliseconds.
+	 * Each orb gets a random duration between min and max.
+	 */
+	despawnDurationMinMs: number;
+
+	/**
+	 * Maximum duration of the despawn/fade-out animation in milliseconds.
+	 * Each orb gets a random duration between min and max.
+	 */
+	despawnDurationMaxMs: number;
+
+	/**
+	 * Minimum scale during spawn/despawn animation (0-1).
+	 * 0 = orbs start/end at zero size, 0.3 = start/end at 30% size.
+	 */
+	animationMinScale: number;
+
+	/**
+	 * Easing power for spawn/despawn animation.
+	 * 1 = linear, 2 = ease-out quadratic, 3 = ease-out cubic.
+	 * Higher values create a more dramatic pop-in effect.
+	 */
+	animationEasePower: number;
 }
 
 /**
@@ -125,4 +166,12 @@ export const DEFAULT_ORB_VISUAL_CONFIG: OrbVisualConfig = {
 	// Size scaling - larger orbs are significantly bigger visually
 	baseRadiusPx: 35,      // Base radius for size 1 orbs
 	sizeExponent: 0.85,    // Near-linear scaling so large orbs are visually much bigger
+
+	// Spawn/despawn animation - slow, dreamy fades (1-4 seconds)
+	spawnDurationMinMs: 1000,    // Minimum 1 second fade-in and grow
+	spawnDurationMaxMs: 4000,    // Maximum 4 seconds fade-in and grow
+	despawnDurationMinMs: 1000,  // Minimum 1 second fade-out and shrink
+	despawnDurationMaxMs: 4000,  // Maximum 4 seconds fade-out and shrink
+	animationMinScale: 0.0,      // Start/end at zero size
+	animationEasePower: 2.5,     // Ease-out effect for smooth pop
 };
