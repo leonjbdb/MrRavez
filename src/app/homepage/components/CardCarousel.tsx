@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ProfileCard, LinksCard, ContactCard } from "@/components/cards";
 import { GlassCard } from "@/components/glass";
+import { useDebugSafe } from "@/components/debug";
 import type { AllSectionVisibility, SectionVisibility } from "../types";
 
 interface CardCarouselProps {
@@ -68,6 +69,13 @@ function AnimatedCard({
 export function CardCarousel({ visibility, isReady }: CardCarouselProps) {
     // Track if cards have faded in (for initial appearance animation)
     const [hasFadedIn, setHasFadedIn] = useState(false);
+    
+    // Check debug context for showCards flag
+    const debugContext = useDebugSafe();
+    const [localShowCards, setLocalShowCards] = useState(true);
+    
+    // Use context value if available, otherwise use local state
+    const showCards = debugContext?.state.showCards ?? localShowCards;
 
     useEffect(() => {
         if (isReady && !hasFadedIn) {
@@ -83,7 +91,22 @@ export function CardCarousel({ visibility, isReady }: CardCarouselProps) {
         }
     }, [isReady, hasFadedIn]);
 
-    if (!isReady) {
+    // Listen for debug option changes when context is not available
+    useEffect(() => {
+        const handleDebugOptionChange = (e: CustomEvent<{ key: string; value: boolean }>) => {
+            if (e.detail.key === "showCards") {
+                setLocalShowCards(e.detail.value);
+            }
+        };
+
+        window.addEventListener("debugOptionChanged", handleDebugOptionChange as EventListener);
+        return () => {
+            window.removeEventListener("debugOptionChanged", handleDebugOptionChange as EventListener);
+        };
+    }, []);
+
+    // Don't render if not ready or showCards is disabled
+    if (!isReady || !showCards) {
         return null;
     }
 

@@ -25,6 +25,7 @@ import { GridRenderer } from './grid/visuals/GridRenderer';
 import { GridAnimator } from './grid/visuals/GridAnimator';
 import { OrbDebugPanel } from './debug-info/components/OrbDebugPanel';
 import { GridDebugPanel } from './debug-info/components/GridDebugPanel';
+import { useDebugSafe } from '@/components/debug';
 
 /** Debug mode flag - checks both environment variable and localStorage. */
 const getDebugMode = (): boolean => {
@@ -112,7 +113,6 @@ export function OrbField({
 	const windowSizeRef = useRef({ width: 0, height: 0 });
 	const currentLayerRef = useRef(initialLayer);
 	const hoveredCellRef = useRef<{ x: number; y: number; worldX: number; worldY: number } | null>(null);
-	const isPausedRef = useRef(false);
 	const burstTimeRef = useRef<number | null>(null); // Track when burst happened for delayed continuous spawning
 	const mousePosRef = useRef<{ x: number; y: number } | null>(null); // Track mouse position for orb repulsion
 	const hasBurstRef = useRef(false); // Track if burst has already happened (prevent double burst)
@@ -121,6 +121,111 @@ export function OrbField({
 	const isMobileRef = useRef(isMobile); // Track mobile mode for scroll direction
 	const currentScrollOffsetRef = useRef({ x: 0, y: 0 }); // Smoothly interpolated scroll offset for rendering
 	const isDebugModeRef = useRef(false); // Track debug mode for animation loop
+	const pausedAtTimeRef = useRef<number | null>(null); // When physics was paused (for freezing time)
+	const pausedTimeOffsetRef = useRef(0); // Accumulated time while paused (to freeze animations)
+
+	// Debug option refs for animation loop access
+	const showGridRef = useRef(true);
+	const showCollisionAreaRef = useRef(true);
+	const showAvoidanceAreaRef = useRef(true);
+	const showGraphicsRef = useRef(true);
+	const enableOrbSpawningRef = useRef(true);
+	const enableOrbDespawningRef = useRef(true);
+	const enableSpawnOnClickRef = useRef(true);
+	const pausePhysicsRef = useRef(false);
+
+	// =========================================================================
+	// Debug Context Integration
+	// =========================================================================
+	const debugContext = useDebugSafe();
+
+	// Sync debug options to refs for animation loop access
+	useEffect(() => {
+		if (debugContext?.state) {
+			showGridRef.current = debugContext.state.showGrid;
+			showCollisionAreaRef.current = debugContext.state.showCollisionArea;
+			showAvoidanceAreaRef.current = debugContext.state.showAvoidanceArea;
+			showGraphicsRef.current = debugContext.state.showGraphics;
+			enableOrbSpawningRef.current = debugContext.state.enableOrbSpawning;
+			enableOrbDespawningRef.current = debugContext.state.enableOrbDespawning;
+			enableSpawnOnClickRef.current = debugContext.state.enableSpawnOnClick;
+			
+			// Handle pause state change
+			const wasPaused = pausePhysicsRef.current;
+			const isPaused = debugContext.state.pausePhysics;
+			pausePhysicsRef.current = isPaused;
+			
+			// Track pause/resume for time freezing
+			if (!wasPaused && isPaused) {
+				// Just paused - record the time
+				pausedAtTimeRef.current = performance.now();
+			} else if (wasPaused && !isPaused) {
+				// Just resumed - accumulate the paused time
+				if (pausedAtTimeRef.current !== null) {
+					pausedTimeOffsetRef.current += performance.now() - pausedAtTimeRef.current;
+					pausedAtTimeRef.current = null;
+				}
+			}
+			
+			// Also sync to isPaused state for UI display
+			setIsPaused(debugContext.state.pausePhysics);
+		}
+	}, [debugContext?.state]);
+
+	// Listen for debug option changes when context is not available (from GlassDebugMenu)
+	useEffect(() => {
+		const handleDebugOptionChange = (e: CustomEvent<{ key: string; value: boolean }>) => {
+			const { key, value } = e.detail;
+			switch (key) {
+				case "showGrid":
+					showGridRef.current = value;
+					break;
+				case "showCollisionArea":
+					showCollisionAreaRef.current = value;
+					break;
+				case "showAvoidanceArea":
+					showAvoidanceAreaRef.current = value;
+					break;
+				case "showGraphics":
+					showGraphicsRef.current = value;
+					break;
+				case "enableOrbSpawning":
+					enableOrbSpawningRef.current = value;
+					break;
+				case "enableOrbDespawning":
+					enableOrbDespawningRef.current = value;
+					break;
+				case "enableSpawnOnClick":
+					enableSpawnOnClickRef.current = value;
+					break;
+				case "pausePhysics":
+					// Handle pause state change
+					const wasPaused = pausePhysicsRef.current;
+					const isPaused = value;
+					pausePhysicsRef.current = isPaused;
+					
+					// Track pause/resume for time freezing
+					if (!wasPaused && isPaused) {
+						// Just paused - record the time
+						pausedAtTimeRef.current = performance.now();
+					} else if (wasPaused && !isPaused) {
+						// Just resumed - accumulate the paused time
+						if (pausedAtTimeRef.current !== null) {
+							pausedTimeOffsetRef.current += performance.now() - pausedAtTimeRef.current;
+							pausedAtTimeRef.current = null;
+						}
+					}
+					
+					setIsPaused(value);
+					break;
+			}
+		};
+
+		window.addEventListener("debugOptionChanged", handleDebugOptionChange as EventListener);
+		return () => {
+			window.removeEventListener("debugOptionChanged", handleDebugOptionChange as EventListener);
+		};
+	}, []);
 
 	// =========================================================================
 	// React State for UI
@@ -202,7 +307,6 @@ export function OrbField({
 	useEffect(() => { styleConfigRef.current = styleConfig; }, [styleConfig]);
 	useEffect(() => { opacityRef.current = opacity; }, [opacity]);
 	useEffect(() => { currentLayerRef.current = currentLayer; }, [currentLayer]);
-	useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 	useEffect(() => { scrollProgressRef.current = scrollProgress; }, [scrollProgress]);
 	useEffect(() => { isMobileRef.current = isMobile; }, [isMobile]);
 
@@ -277,6 +381,22 @@ export function OrbField({
 	// =========================================================================
 	// 2. Grid Initialization (Only on Resize)
 	// =========================================================================
+	
+	/**
+	 * Get the effective time for animations.
+	 * When paused, returns the frozen time (time at pause).
+	 * When not paused, returns current time minus accumulated pause duration.
+	 */
+	const getEffectiveTime = useCallback((): number => {
+		const now = performance.now();
+		if (pausePhysicsRef.current && pausedAtTimeRef.current !== null) {
+			// Currently paused - return the frozen time
+			return pausedAtTimeRef.current - pausedTimeOffsetRef.current;
+		}
+		// Not paused - return current time minus all accumulated paused time
+		return now - pausedTimeOffsetRef.current;
+	}, []);
+	
 	useEffect(() => {
 		if (windowSize.width === 0) return;
 
@@ -318,7 +438,7 @@ export function OrbField({
 		if (!ctx) return;
 
 		// A. Physics Update (only after reveal completes and when not paused)
-		if (easedProgress >= 1 && !isPausedRef.current) {
+		if (easedProgress >= 1 && !pausePhysicsRef.current) {
 			const currentOrbs = orbsRef.current;
 
 			// Phase 1: Mark all orbs at current positions
@@ -380,22 +500,24 @@ export function OrbField({
 				OrbPhysics.markOrbCircular(grid, orb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
 			}
 
-			// Phase 9: Check and remove expired orbs
-			const now = performance.now();
-			const expiredOrbs = currentOrbs.filter(orb => (now - orb.createdAt) > orb.lifetimeMs);
-			if (expiredOrbs.length > 0) {
-				for (const expiredOrb of expiredOrbs) {
-					OrbPhysics.clearOrbCircular(grid, expiredOrb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
+			// Phase 9: Check and remove expired orbs (only if despawning is enabled)
+			const now = getEffectiveTime();
+			if (enableOrbDespawningRef.current) {
+				const expiredOrbs = currentOrbs.filter(orb => (now - orb.createdAt) > orb.lifetimeMs);
+				if (expiredOrbs.length > 0) {
+					for (const expiredOrb of expiredOrbs) {
+						OrbPhysics.clearOrbCircular(grid, expiredOrb, vpc.startCellX, vpc.startCellY, vpc.invCellSizeXPx, vpc.invCellSizeYPx);
+					}
+					orbsRef.current = currentOrbs.filter(orb => (now - orb.createdAt) <= orb.lifetimeMs);
+					syncOrbsState(); // Update React state for UI
 				}
-				orbsRef.current = currentOrbs.filter(orb => (now - orb.createdAt) <= orb.lifetimeMs);
-				syncOrbsState(); // Update React state for UI
 			}
 
 			// Phase 10: Continuous spawning to maintain target orb count
-			// Only spawn if page is visible and burst has happened
+			// Only spawn if page is visible, burst has happened, and spawning is enabled
 			const burstTime = burstTimeRef.current;
 			const { targetOrbCountAt4K, referenceScreenArea, delayAfterBurstMs, baseSpawnRateAt4K, maxSpawnsPerFrame } = DEFAULT_CONTINUOUS_SPAWN_CONFIG;
-			if (burstTime && (now - burstTime) > delayAfterBurstMs && isPageVisibleRef.current) {
+			if (burstTime && (now - burstTime) > delayAfterBurstMs && isPageVisibleRef.current && enableOrbSpawningRef.current) {
 				// Scale target and spawn rate linearly with screen area
 				// At 4K (3840x2160): 1000 orbs, at 1080p (1920x1080): ~250 orbs
 				const screenArea = ws.width * ws.height;
@@ -424,7 +546,7 @@ export function OrbField({
 					}
 				}
 			}
-		} else if (easedProgress >= 1 && isPausedRef.current) {
+		} else if (easedProgress >= 1 && pausePhysicsRef.current) {
 			// When paused, still mark orbs for rendering but don't update physics
 			const currentOrbs = orbsRef.current;
 			grid.clearDynamic();
@@ -479,13 +601,16 @@ export function OrbField({
 			easedProgress,
 			revealConfigRef.current,
 			styleConfigRef.current,
-			isDebugModeRef.current ? hoveredCellRef.current : null,
+			isDebugModeRef.current && enableSpawnOnClickRef.current ? hoveredCellRef.current : null,
 			grid,
 			currentLayerRef.current,
 			isDebugModeRef.current ? orbsRef.current : [],
 			undefined, // use default orbDebugConfig
 			current.x,
-			current.y
+			current.y,
+			showGridRef.current,
+			showCollisionAreaRef.current,
+			showAvoidanceAreaRef.current
 		);
 
 		// E. Render Visual Orbs (maroon orbs with glow and depth blur)
@@ -493,17 +618,22 @@ export function OrbField({
 		if (visualCanvas && easedProgress >= 1) {
 			const visualCtx = visualCanvas.getContext('2d');
 			if (visualCtx) {
-				const now = performance.now();
-				OrbVisualRenderer.draw(
-					visualCtx,
-					ws,
-					orbsRef.current,
-					grid.config.layers,
-					undefined, // use default config
-					now,       // current time for spawn/despawn animations
-					current.x,
-					current.y
-				);
+				if (showGraphicsRef.current) {
+					const now = getEffectiveTime();
+					OrbVisualRenderer.draw(
+						visualCtx,
+						ws,
+						orbsRef.current,
+						grid.config.layers,
+						undefined, // use default config
+						now,       // frozen time for spawn/despawn animations when paused
+						current.x,
+						current.y
+					);
+				} else {
+					// Clear the canvas when graphics are disabled
+					visualCtx.clearRect(0, 0, ws.width, ws.height);
+				}
 			}
 		}
 
@@ -511,7 +641,7 @@ export function OrbField({
 		if (isDebugModeRef.current && selectedOrbIdRef.current) {
 			updateSelectedOrbData();
 		}
-	}, [orbsRef, selectedOrbIdRef, updateSelectedOrbData, syncOrbsState, spawnRandomOrbs]);
+	}, [orbsRef, selectedOrbIdRef, updateSelectedOrbData, syncOrbsState, spawnRandomOrbs, getEffectiveTime]);
 
 	// =========================================================================
 	// 4. Animation Loop Controller
@@ -629,7 +759,9 @@ export function OrbField({
 	const handleClick = useCallback((e: React.MouseEvent) => {
 		const vpc = viewportCellsRef.current;
 		const grid = gridRef.current;
-		if (!grid || !vpc || !isDebugMode) return;
+		// Only allow click-to-create if debug mode AND enableSpawnOnClick are both true
+		// Use ref instead of context to work when context is not available
+		if (!grid || !vpc || !isDebugMode || !enableSpawnOnClickRef.current) return;
 
 		// Account for scroll offset when calculating click position
 		const currentOffset = currentScrollOffsetRef.current;
@@ -651,10 +783,6 @@ export function OrbField({
 		// Debug mode only (mouse repulsion handled by global listener)
 		hoveredCellRef.current = null;
 		setHoveredCell(null);
-	}, []);
-
-	const handleTogglePause = useCallback(() => {
-		setIsPaused((prev) => !prev);
 	}, []);
 
 	// =========================================================================
@@ -714,11 +842,9 @@ export function OrbField({
 						selectedOrbId={selectedOrbId}
 						selectedOrb={selectedOrbData}
 						orbSize={orbSize}
-						isPaused={isPaused}
 						onSelectOrb={selectOrb}
 						onDeleteOrb={handleDeleteOrb}
 						onSizeChange={setOrbSize}
-						onTogglePause={handleTogglePause}
 					/>
 
 					<GridDebugPanel

@@ -41,6 +41,9 @@ export class GridRenderer {
 	 * @param orbDebugConfig - Configuration for orb debug visualization.
 	 * @param offsetX - Horizontal offset in pixels for parallax scrolling.
 	 * @param offsetY - Vertical offset in pixels for parallax scrolling.
+	 * @param showGrid - Whether to show grid lines (default: true).
+	 * @param showCollisionArea - Whether to show collision area cells (default: true).
+	 * @param showAvoidanceArea - Whether to show avoidance area cells (default: true).
 	 */
 	static draw(
 		ctx: CanvasRenderingContext2D,
@@ -55,7 +58,10 @@ export class GridRenderer {
 		orbs: Orb[] = [],
 		orbDebugConfig: OrbDebugVisualConfig = DEFAULT_ORB_DEBUG_CONFIG,
 		offsetX: number = 0,
-		offsetY: number = 0
+		offsetY: number = 0,
+		showGrid: boolean = true,
+		showCollisionArea: boolean = true,
+		showAvoidanceArea: boolean = true
 	): void {
 		const { width, height } = windowSize;
 		const { startCellX, endCellX, startCellY, endCellY, cellSizeXPx, cellSizeYPx } = viewportCells;
@@ -90,7 +96,7 @@ export class GridRenderer {
 		ctx.translate(offsetX, offsetY);
 
 		// Phase 1: Draw occupied cells (only after reveal completes)
-		if (grid && progress >= 1) {
+		if (grid && progress >= 1 && (showCollisionArea || showAvoidanceArea)) {
 			this.drawOccupiedCells(
 				ctx,
 				grid,
@@ -105,12 +111,15 @@ export class GridRenderer {
 				extraCellsTop,
 				extraCellsBottom,
 				extraCellsLeft,
-				extraCellsRight
+				extraCellsRight,
+				showCollisionArea,
+				showAvoidanceArea
 			);
 		}
 
-		// Phase 2: Draw grid lines with reveal animation
-		this.drawGridLines(
+		// Phase 2: Draw grid lines with reveal animation (only if showGrid is true)
+		if (showGrid) {
+			this.drawGridLines(
 			ctx,
 			width,
 			startCellX,
@@ -127,11 +136,12 @@ export class GridRenderer {
 			baseAlpha,
 			whiteAlpha,
 			lineWidth,
-			extraCellsTop,
-			extraCellsBottom,
-			extraCellsLeft,
-			extraCellsRight
-		);
+				extraCellsTop,
+				extraCellsBottom,
+				extraCellsLeft,
+				extraCellsRight
+			);
+		}
 
 		// Phase 3: Draw hover highlight (only after reveal completes)
 		if (progress >= 1 && hoveredCell) {
@@ -166,6 +176,8 @@ export class GridRenderer {
 	 * @param extraCellsBottom - Additional cells to render below viewport (for scroll offset).
 	 * @param extraCellsLeft - Additional cells to render left of viewport (for scroll offset).
 	 * @param extraCellsRight - Additional cells to render right of viewport (for scroll offset).
+	 * @param showCollisionArea - Whether to show collision area cells.
+	 * @param showAvoidanceArea - Whether to show avoidance area cells.
 	 */
 	private static drawOccupiedCells(
 		ctx: CanvasRenderingContext2D,
@@ -181,7 +193,9 @@ export class GridRenderer {
 		extraCellsTop: number = 0,
 		extraCellsBottom: number = 0,
 		extraCellsLeft: number = 0,
-		extraCellsRight: number = 0
+		extraCellsRight: number = 0,
+		showCollisionArea: boolean = true,
+		showAvoidanceArea: boolean = true
 	): void {
 		// Calculate extended loop bounds
 		const cyStart = -extraCellsTop;
@@ -190,29 +204,33 @@ export class GridRenderer {
 		const cxEnd = (endCellX - startCellX) + extraCellsRight;
 
 		// Pass 1: Draw ALL proximity cells (yellow/avoidance zones)
-		ctx.fillStyle = 'rgba(255, 220, 0, 0.5)'; // Brighter yellow with more opacity
-		for (let cy = cyStart; cy <= cyEnd; cy++) {
-			for (let cx = cxStart; cx <= cxEnd; cx++) {
-				const cellX = startCellX + cx;
-				const cellY = startCellY + cy;
-				const state = grid.getCell(cellX, cellY, currentLayer);
+		if (showAvoidanceArea) {
+			ctx.fillStyle = 'rgba(255, 220, 0, 0.5)'; // Brighter yellow with more opacity
+			for (let cy = cyStart; cy <= cyEnd; cy++) {
+				for (let cx = cxStart; cx <= cxEnd; cx++) {
+					const cellX = startCellX + cx;
+					const cellY = startCellY + cy;
+					const state = grid.getCell(cellX, cellY, currentLayer);
 
-				if (hasCellFlag(state, CELL_PROXIMITY)) {
-					ctx.fillRect(cx * cellSizeXPx, cy * cellSizeYPx, cellSizeXPx, cellSizeYPx);
+					if (hasCellFlag(state, CELL_PROXIMITY)) {
+						ctx.fillRect(cx * cellSizeXPx, cy * cellSizeYPx, cellSizeXPx, cellSizeYPx);
+					}
 				}
 			}
 		}
 
 		// Pass 2: Draw ALL filled cells (red/orb bodies) on top
-		ctx.fillStyle = fillColor;
-		for (let cy = cyStart; cy <= cyEnd; cy++) {
-			for (let cx = cxStart; cx <= cxEnd; cx++) {
-				const cellX = startCellX + cx;
-				const cellY = startCellY + cy;
-				const state = grid.getCell(cellX, cellY, currentLayer);
+		if (showCollisionArea) {
+			ctx.fillStyle = fillColor;
+			for (let cy = cyStart; cy <= cyEnd; cy++) {
+				for (let cx = cxStart; cx <= cxEnd; cx++) {
+					const cellX = startCellX + cx;
+					const cellY = startCellY + cy;
+					const state = grid.getCell(cellX, cellY, currentLayer);
 
-				if (hasCellFlag(state, CELL_FILLED)) {
-					ctx.fillRect(cx * cellSizeXPx, cy * cellSizeYPx, cellSizeXPx, cellSizeYPx);
+					if (hasCellFlag(state, CELL_FILLED)) {
+						ctx.fillRect(cx * cellSizeXPx, cy * cellSizeYPx, cellSizeXPx, cellSizeYPx);
+					}
 				}
 			}
 		}
