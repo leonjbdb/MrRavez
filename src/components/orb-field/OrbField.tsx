@@ -133,6 +133,8 @@ export function OrbField({
 	const enableOrbDespawningRef = useRef(true);
 	const enableSpawnOnClickRef = useRef(true);
 	const pausePhysicsRef = useRef(false);
+	const showArrowVectorRef = useRef(true);
+	const showTruePositionRef = useRef(true);
 
 	// =========================================================================
 	// Debug Context Integration
@@ -149,6 +151,8 @@ export function OrbField({
 			enableOrbSpawningRef.current = debugContext.state.enableOrbSpawning;
 			enableOrbDespawningRef.current = debugContext.state.enableOrbDespawning;
 			enableSpawnOnClickRef.current = debugContext.state.enableSpawnOnClick;
+			showArrowVectorRef.current = debugContext.state.showArrowVector;
+			showTruePositionRef.current = debugContext.state.showTruePosition;
 			
 			// Handle pause state change
 			const wasPaused = pausePhysicsRef.current;
@@ -188,6 +192,12 @@ export function OrbField({
 					break;
 				case "showGraphics":
 					showGraphicsRef.current = value;
+					break;
+				case "showArrowVector":
+					showArrowVectorRef.current = value;
+					break;
+				case "showTruePosition":
+					showTruePositionRef.current = value;
 					break;
 				case "enableOrbSpawning":
 					enableOrbSpawningRef.current = value;
@@ -610,7 +620,9 @@ export function OrbField({
 			current.y,
 			showGridRef.current,
 			showCollisionAreaRef.current,
-			showAvoidanceAreaRef.current
+			showAvoidanceAreaRef.current,
+			showArrowVectorRef.current,
+			showTruePositionRef.current
 		);
 
 		// E. Render Visual Orbs (maroon orbs with glow and depth blur)

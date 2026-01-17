@@ -15,6 +15,8 @@ const toggleItems: ToggleItem[] = [
 	{ key: "showCollisionArea", label: "Collision Area", description: "Red cells showing orb bodies" },
 	{ key: "showAvoidanceArea", label: "Avoidance Area", description: "Yellow cells showing proximity zones" },
 	{ key: "showGraphics", label: "Orb Graphics", description: "Visual orb rendering" },
+	{ key: "showArrowVector", label: "Arrow Vectors", description: "Show velocity arrows on orbs" },
+	{ key: "showTruePosition", label: "True Position", description: "Show position indicator dot" },
 	{ key: "pausePhysics", label: "Pause Physics", description: "Freeze orb movement" },
 	{ key: "enableOrbSpawning", label: "Orb Spawning", description: "Continuous orb spawning" },
 	{ key: "enableOrbDespawning", label: "Orb Despawning", description: "Lifetime expiration" },
@@ -29,6 +31,7 @@ const defaultState: Omit<DebugState, "enabled"> = {
 	showGraphics: true,
 	showCards: true,
 	showArrowVector: true,
+	showTruePosition: true,
 	showGrid: true,
 	enableOrbSpawning: true,
 	enableOrbDespawning: true,
@@ -225,11 +228,14 @@ export function GlassDebugMenu() {
 		} else {
 			setLocalState(prev => {
 				const newState = { ...prev, [key]: !prev[key] };
-				window.dispatchEvent(
-					new CustomEvent("debugOptionChanged", { 
-						detail: { key, value: newState[key] } 
-					})
-				);
+				// Defer event dispatch to avoid setState during render
+				queueMicrotask(() => {
+					window.dispatchEvent(
+						new CustomEvent("debugOptionChanged", { 
+							detail: { key, value: newState[key] } 
+						})
+					);
+				});
 				return newState;
 			});
 		}

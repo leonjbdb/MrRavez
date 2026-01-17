@@ -44,6 +44,8 @@ export class GridRenderer {
 	 * @param showGrid - Whether to show grid lines (default: true).
 	 * @param showCollisionArea - Whether to show collision area cells (default: true).
 	 * @param showAvoidanceArea - Whether to show avoidance area cells (default: true).
+	 * @param showArrowVector - Whether to show velocity arrow vectors (default: true).
+	 * @param showTruePosition - Whether to show true position indicator dot (default: true).
 	 */
 	static draw(
 		ctx: CanvasRenderingContext2D,
@@ -61,7 +63,9 @@ export class GridRenderer {
 		offsetY: number = 0,
 		showGrid: boolean = true,
 		showCollisionArea: boolean = true,
-		showAvoidanceArea: boolean = true
+		showAvoidanceArea: boolean = true,
+		showArrowVector: boolean = true,
+		showTruePosition: boolean = true
 	): void {
 		const { width, height } = windowSize;
 		const { startCellX, endCellX, startCellY, endCellY, cellSizeXPx, cellSizeYPx } = viewportCells;
@@ -160,7 +164,7 @@ export class GridRenderer {
 
 		// Phase 4: Draw orb debug visuals (only after reveal completes)
 		if (orbs.length > 0 && progress >= 1) {
-			this.drawOrbDebugVisuals(ctx, orbs, currentLayer, orbDebugConfig);
+			this.drawOrbDebugVisuals(ctx, orbs, currentLayer, orbDebugConfig, showArrowVector, showTruePosition);
 		}
 
 		// Restore canvas state after parallax offset
@@ -359,43 +363,49 @@ export class GridRenderer {
 		ctx: CanvasRenderingContext2D,
 		orbs: Orb[],
 		currentLayer: number,
-		config: OrbDebugVisualConfig
+		config: OrbDebugVisualConfig,
+		showArrowVector: boolean = true,
+		showTruePosition: boolean = true
 	): void {
 		for (const orb of orbs) {
 			// Show all orbs regardless of layer (they move in 3D)
 			// Opacity could be adjusted based on z-distance in the future
 
-			// Draw position indicator (1x1 pixel)
-			ctx.fillStyle = config.positionColor;
-			ctx.fillRect(orb.pxX, orb.pxY, 1, 1);
+			// Draw position indicator (1x1 pixel) - only if enabled
+			if (showTruePosition) {
+				ctx.fillStyle = config.positionColor;
+				ctx.fillRect(orb.pxX, orb.pxY, 1, 1);
+			}
 
-			// Draw velocity vector arrow
-			const speed = Math.sqrt(orb.vx * orb.vx + orb.vy * orb.vy);
-			if (speed > 0) {
-				const endX = orb.pxX + orb.vx * config.arrowScale;
-				const endY = orb.pxY + orb.vy * config.arrowScale;
+			// Draw velocity vector arrow (only if enabled)
+			if (showArrowVector) {
+				const speed = Math.sqrt(orb.vx * orb.vx + orb.vy * orb.vy);
+				if (speed > 0) {
+					const endX = orb.pxX + orb.vx * config.arrowScale;
+					const endY = orb.pxY + orb.vy * config.arrowScale;
 
-				ctx.strokeStyle = config.arrowColor;
-				ctx.lineWidth = config.arrowLineWidth;
-				ctx.beginPath();
-				ctx.moveTo(orb.pxX, orb.pxY);
-				ctx.lineTo(endX, endY);
+					ctx.strokeStyle = config.arrowColor;
+					ctx.lineWidth = config.arrowLineWidth;
+					ctx.beginPath();
+					ctx.moveTo(orb.pxX, orb.pxY);
+					ctx.lineTo(endX, endY);
 
-				// Draw arrowhead
-				const angle = Math.atan2(orb.vy, orb.vx);
-				const headLen = config.arrowHeadLength;
-				const headAngle = Math.PI / 6;
+					// Draw arrowhead
+					const angle = Math.atan2(orb.vy, orb.vx);
+					const headLen = config.arrowHeadLength;
+					const headAngle = Math.PI / 6;
 
-				ctx.lineTo(
-					endX - headLen * Math.cos(angle - headAngle),
-					endY - headLen * Math.sin(angle - headAngle)
-				);
-				ctx.moveTo(endX, endY);
-				ctx.lineTo(
-					endX - headLen * Math.cos(angle + headAngle),
-					endY - headLen * Math.sin(angle + headAngle)
-				);
-				ctx.stroke();
+					ctx.lineTo(
+						endX - headLen * Math.cos(angle - headAngle),
+						endY - headLen * Math.sin(angle - headAngle)
+					);
+					ctx.moveTo(endX, endY);
+					ctx.lineTo(
+						endX - headLen * Math.cos(angle + headAngle),
+						endY - headLen * Math.sin(angle + headAngle)
+					);
+					ctx.stroke();
+				}
 			}
 		}
 	}

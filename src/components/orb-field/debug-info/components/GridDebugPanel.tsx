@@ -40,61 +40,80 @@ export function GridDebugPanel({
 	onLayerChange,
 	hoveredCell,
 }: GridDebugPanelProps) {
+	const glassStyles: React.CSSProperties = {
+		background: "rgba(255, 255, 255, 0.08)",
+		backdropFilter: "blur(24px) saturate(120%)",
+		WebkitBackdropFilter: "blur(24px) saturate(120%)",
+		border: "1px solid rgba(255, 255, 255, 0.15)",
+		boxShadow: `
+			0 25px 50px rgba(0, 0, 0, 0.25),
+			0 10px 20px rgba(0, 0, 0, 0.15),
+			inset 0 1px 0 rgba(255, 255, 255, 0.2),
+			inset 0 -1px 0 rgba(0, 0, 0, 0.1)
+		`,
+	};
+
 	return (
 		<div
 			style={{
+				...glassStyles,
 				padding: 12,
-				background: 'rgba(0, 0, 0, 0.7)',
-				border: '1px solid #333',
-				borderRadius: 6,
-				color: 'white',
-				fontFamily: 'monospace',
+				borderRadius: 12,
+				color: 'rgba(255, 255, 255, 0.9)',
+				fontFamily: 'var(--font-mono), monospace',
 				fontSize: 11,
-				backdropFilter: 'blur(4px)',
 				minWidth: 160,
 			}}
 		>
 			<div
 				style={{
-					fontWeight: 'bold',
-					borderBottom: '1px solid #444',
-					paddingBottom: 4,
-					marginBottom: 4,
+					fontWeight: 600,
+					fontSize: 12,
+					color: 'rgba(255, 255, 255, 0.9)',
+					borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+					paddingBottom: 8,
+					marginBottom: 8,
 				}}
 			>
 				Grid Stats
 			</div>
 
-			<div style={{ marginBottom: 4 }}>
-				<strong>Grid:</strong> {gridConfig.cellsX}×{gridConfig.cellsY}×{gridConfig.layers}
+			<div style={{ marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
+				<span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Grid:</span>
+				<span>{gridConfig.cellsX}×{gridConfig.cellsY}×{gridConfig.layers}</span>
 			</div>
 
-			<div style={{ marginBottom: 4 }}>
-				<strong>Cell:</strong> {viewportCells.cellSizeXCm.toFixed(2)}×{viewportCells.cellSizeYCm.toFixed(2)}cm
+			<div style={{ marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
+				<span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Cell:</span>
+				<span>{viewportCells.cellSizeXCm.toFixed(2)}×{viewportCells.cellSizeYCm.toFixed(2)}cm</span>
 			</div>
 
-			<div style={{ marginBottom: 6 }}>
+			<div style={{ marginBottom: 8 }}>
 				<label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-					<strong>Z:</strong>
+					<span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Z:</span>
 					<input
 						type="range"
 						min={0}
 						max={gridConfig.layers - 1}
 						value={currentLayer}
 						onChange={(e) => onLayerChange(parseInt(e.target.value))}
-						style={{ width: 60 }}
+						style={{ 
+							flex: 1,
+							cursor: 'pointer',
+							accentColor: 'rgba(78, 5, 6, 0.8)',
+						}}
 					/>
-					<span>{currentLayer}</span>
+					<span style={{ minWidth: 16, textAlign: 'right' }}>{currentLayer}</span>
 				</label>
 			</div>
 
 			{hoveredCell && (
 				<div
 					style={{
-						color: '#8f8',
+						color: 'rgba(136, 255, 136, 0.9)',
 						fontSize: 10,
-						borderTop: '1px solid #333',
-						paddingTop: 4,
+						borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+						paddingTop: 8,
 					}}
 				>
 					Cell ({hoveredCell.x}, {hoveredCell.y})

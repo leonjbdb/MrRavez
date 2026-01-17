@@ -60,17 +60,28 @@ export function OrbDebugPanel({
 
 	const { minSize, maxSize } = DEFAULT_ORB_SPAWN_CONFIG;
 
+	const glassStyles: React.CSSProperties = {
+		background: "rgba(255, 255, 255, 0.08)",
+		backdropFilter: "blur(24px) saturate(120%)",
+		WebkitBackdropFilter: "blur(24px) saturate(120%)",
+		border: "1px solid rgba(255, 255, 255, 0.15)",
+		boxShadow: `
+			0 25px 50px rgba(0, 0, 0, 0.25),
+			0 10px 20px rgba(0, 0, 0, 0.15),
+			inset 0 1px 0 rgba(255, 255, 255, 0.2),
+			inset 0 -1px 0 rgba(0, 0, 0, 0.1)
+		`,
+	};
+
 	return (
 		<div
 			style={{
+				...glassStyles,
 				padding: 12,
-				background: 'rgba(0, 0, 0, 0.7)',
-				border: '1px solid #333',
-				borderRadius: 6,
-				color: 'white',
-				fontFamily: 'monospace',
+				borderRadius: 12,
+				color: 'rgba(255, 255, 255, 0.9)',
+				fontFamily: 'var(--font-mono), monospace',
 				fontSize: 11,
-				backdropFilter: 'blur(4px)',
 				display: 'flex',
 				flexDirection: 'column',
 				gap: 8,
@@ -79,9 +90,11 @@ export function OrbDebugPanel({
 		>
 			<div
 				style={{
-					fontWeight: 'bold',
-					borderBottom: '1px solid #444',
-					paddingBottom: 4,
+					fontWeight: 600,
+					fontSize: 12,
+					color: 'rgba(255, 255, 255, 0.9)',
+					borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+					paddingBottom: 8,
 					marginBottom: 4,
 				}}
 			>
@@ -91,17 +104,19 @@ export function OrbDebugPanel({
 			{/* Orb Selector */}
 			<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
 				<label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-					<strong>Select:</strong>
+					<span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Select:</span>
 					<select
 						value={selectedOrbId || ''}
 						onChange={(e) => onSelectOrb?.(e.target.value || null)}
 						style={{
-							background: '#222',
-							color: '#fff',
-							border: '1px solid #444',
+							background: 'rgba(255, 255, 255, 0.1)',
+							color: 'rgba(255, 255, 255, 0.9)',
+							border: '1px solid rgba(255, 255, 255, 0.15)',
+							borderRadius: 6,
 							fontSize: 10,
-							padding: '2px 4px',
+							padding: '4px 6px',
 							maxWidth: 100,
+							cursor: 'pointer',
 						}}
 					>
 						<option value="">None</option>
@@ -119,9 +134,9 @@ export function OrbDebugPanel({
 				<div
 					style={{
 						fontSize: 10,
-						color: '#aaa',
-						padding: '4px 0',
-						borderTop: '1px solid #333',
+						color: 'rgba(255, 255, 255, 0.6)',
+						padding: '8px 0',
+						borderTop: '1px solid rgba(255, 255, 255, 0.1)',
 					}}
 				>
 					Pos: {selectedOrb.pxX.toFixed(0)}, {selectedOrb.pxY.toFixed(0)}, z={selectedOrb.z.toFixed(1)}
@@ -138,13 +153,15 @@ export function OrbDebugPanel({
 					onClick={() => onDeleteOrb?.(selectedOrbId!)}
 					style={{
 						flex: 1,
-						background: '#a11',
-						color: 'white',
-						border: 'none',
-						borderRadius: 3,
-						padding: '4px 2px',
-						fontSize: 9,
-						cursor: 'pointer',
+						background: 'rgba(170, 17, 17, 0.6)',
+						color: 'rgba(255, 255, 255, 0.9)',
+						border: '1px solid rgba(255, 255, 255, 0.15)',
+						borderRadius: 6,
+						padding: '6px 4px',
+						fontSize: 10,
+						cursor: selectedOrbId ? 'pointer' : 'not-allowed',
+						opacity: selectedOrbId ? 1 : 0.5,
+						transition: 'background 0.2s ease',
 					}}
 					disabled={!selectedOrbId}
 				>
@@ -153,10 +170,10 @@ export function OrbDebugPanel({
 			</div>
 
 			{/* Brush Size Slider */}
-			<div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+			<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
 				<label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-					<strong>Brush Size:</strong>
-					<span>{orbSize}</span>
+					<span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Brush Size:</span>
+					<span style={{ color: 'rgba(255, 255, 255, 0.9)' }}>{orbSize}</span>
 				</label>
 				<input
 					type="range"
@@ -165,11 +182,15 @@ export function OrbDebugPanel({
 					step={1}
 					value={orbSize}
 					onChange={handleSizeChange}
-					style={{ width: '100%', cursor: 'pointer' }}
+					style={{ 
+						width: '100%', 
+						cursor: 'pointer',
+						accentColor: 'rgba(78, 5, 6, 0.8)',
+					}}
 				/>
 			</div>
 
-			<div style={{ fontSize: 9, color: '#888', fontStyle: 'italic', marginTop: 4 }}>
+			<div style={{ fontSize: 9, color: 'rgba(255, 255, 255, 0.4)', fontStyle: 'italic', marginTop: 4 }}>
 				* Click grid to place orb
 			</div>
 		</div>

@@ -20,6 +20,8 @@ export interface DebugState {
 	showCards: boolean;
 	/** Show velocity arrow vectors on orbs */
 	showArrowVector: boolean;
+	/** Show true position indicator (1px dot) on orbs */
+	showTruePosition: boolean;
 	/** Show grid lines */
 	showGrid: boolean;
 	/** Enable continuous orb spawning */
@@ -55,6 +57,7 @@ const defaultState: DebugState = {
 	showGraphics: true,
 	showCards: true,
 	showArrowVector: true,
+	showTruePosition: true,
 	showGrid: true,
 	enableOrbSpawning: true,
 	enableOrbDespawning: true,
