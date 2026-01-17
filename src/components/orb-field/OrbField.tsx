@@ -474,18 +474,24 @@ export function OrbField({
 				OrbPhysics.applyWander(orb, deltaTime);
 			}
 
-			// Phase 5: Apply layer attraction (orbs drift toward preferred depth)
-			const { maxSize } = DEFAULT_ORB_SPAWN_CONFIG;
-			const { attractionStrength } = DEFAULT_LAYER_ATTRACTION_CONFIG;
-			const totalLayers = grid.config.layers;
-			for (const orb of currentOrbs) {
-				OrbPhysics.applyLayerAttraction(orb, maxSize, totalLayers, attractionStrength, deltaTime);
-			}
+		// Phase 5: Apply layer attraction (orbs drift toward preferred depth)
+		const { maxSize } = DEFAULT_ORB_SPAWN_CONFIG;
+		const { attractionStrength } = DEFAULT_LAYER_ATTRACTION_CONFIG;
+		const totalLayers = grid.config.layers;
+		for (const orb of currentOrbs) {
+			OrbPhysics.applyLayerAttraction(orb, maxSize, totalLayers, attractionStrength, deltaTime);
+		}
 
-			// Phase 6: Move all orbs
-			for (const orb of currentOrbs) {
-				OrbPhysics.updatePosition(orb, deltaTime);
-			}
+		// Phase 5.5: Apply orb-orb avoidance (soft nudging when avoidance zones overlap)
+		CollisionSystem.applyAvoidanceRepulsion(currentOrbs, vpc, deltaTime);
+
+		// Phase 5.6: Resolve orb-orb collisions (hard bounce when bodies overlap)
+		CollisionSystem.resolveOrbOrbCollisions(currentOrbs, vpc);
+
+		// Phase 6: Move all orbs
+		for (const orb of currentOrbs) {
+			OrbPhysics.updatePosition(orb, deltaTime);
+		}
 
 			// Phase 7: Check border/wall collisions for each orb (3D) AFTER movement
 			for (const orb of currentOrbs) {
