@@ -139,6 +139,18 @@ export function OrbField({
 	const showTruePositionRef = useRef(true);
 
 	// =========================================================================
+	// React State for UI
+	// =========================================================================
+	const [gridConfig, setGridConfig] = useState<GridConfig | null>(null);
+	const [viewportCells, setViewportCells] = useState<ViewportCells | null>(null);
+	const [currentLayer, setCurrentLayer] = useState(initialLayer);
+	const [orbSize, setOrbSize] = useState(1);
+	const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number; worldX: number; worldY: number } | null>(null);
+	const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+	const [isMounted, setIsMounted] = useState(false);
+	const [isDebugMode, setIsDebugMode] = useState(false);
+
+	// =========================================================================
 	// Debug Context Integration
 	// =========================================================================
 	const debugContext = useDebugSafe();
@@ -174,9 +186,6 @@ export function OrbField({
 					pausedAtTimeRef.current = null;
 				}
 			}
-
-			// Also sync to isPaused state for UI display
-			setIsPaused(debugContext.state.pausePhysics);
 		}
 	}, [debugContext?.state]);
 
@@ -236,7 +245,6 @@ export function OrbField({
 						}
 					}
 
-					setIsPaused(value);
 					break;
 			}
 		};
@@ -247,29 +255,23 @@ export function OrbField({
 		};
 	}, []);
 
-	// =========================================================================
-	// React State for UI
-	// =========================================================================
-	const [gridConfig, setGridConfig] = useState<GridConfig | null>(null);
-	const [viewportCells, setViewportCells] = useState<ViewportCells | null>(null);
-	const [currentLayer, setCurrentLayer] = useState(initialLayer);
-	const [orbSize, setOrbSize] = useState(1);
-	const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number; worldX: number; worldY: number } | null>(null);
-	const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
-	const [isMounted, setIsMounted] = useState(false);
-	const [isPaused, setIsPaused] = useState(false);
-	const [isDebugMode, setIsDebugMode] = useState(false);
-
 	// Initialize debug mode on mount
 	useEffect(() => {
 		const debugMode = getDebugMode();
-		setIsDebugMode(debugMode);
 		isDebugModeRef.current = debugMode;
+
+		// Use queueMicrotask to avoid cascading setState
+		queueMicrotask(() => {
+			setIsDebugMode(debugMode);
+		});
 
 		// Listen for debug mode changes from slider
 		const handleDebugModeChange = (e: CustomEvent) => {
-			setIsDebugMode(e.detail.enabled);
-			isDebugModeRef.current = e.detail.enabled;
+			const enabled = e.detail.enabled;
+			isDebugModeRef.current = enabled;
+			queueMicrotask(() => {
+				setIsDebugMode(enabled);
+			});
 		};
 
 		window.addEventListener('debugModeChanged', handleDebugModeChange as EventListener);
@@ -311,10 +313,12 @@ export function OrbField({
 
 	// Calculate target orb count based on screen size
 	const targetOrbCount = useMemo(() => {
-		const { targetOrbCountAt4K, referenceScreenArea } = DEFAULT_CONTINUOUS_SPAWN_CONFIG;
+		const { targetOrbCountAt4K, referenceScreenArea, minOrbCount } = DEFAULT_CONTINUOUS_SPAWN_CONFIG;
 		const screenArea = windowSize.width * windowSize.height;
 		const areaScale = screenArea / referenceScreenArea;
-		return Math.round(targetOrbCountAt4K * areaScale);
+		const scaledCount = Math.round(targetOrbCountAt4K * areaScale);
+		// Ensure at least minOrbCount orbs on mobile devices
+		return Math.max(minOrbCount, scaledCount);
 	}, [windowSize]);
 
 	// Config refs for stable loop access
@@ -356,6 +360,27 @@ export function OrbField({
 			mousePosRef.current = null;
 		};
 
+		// Global touch tracking for orb repulsion on mobile (same behavior as mouse)
+		const handleGlobalTouchMove = (e: TouchEvent) => {
+			// Prevent default to avoid scrolling issues while touching
+			// e.preventDefault(); // Commented out to allow natural scrolling
+			if (e.touches.length > 0) {
+				const touch = e.touches[0];
+				mousePosRef.current = { x: touch.clientX, y: touch.clientY };
+			}
+		};
+
+		const handleGlobalTouchStart = (e: TouchEvent) => {
+			if (e.touches.length > 0) {
+				const touch = e.touches[0];
+				mousePosRef.current = { x: touch.clientX, y: touch.clientY };
+			}
+		};
+
+		const handleGlobalTouchEnd = () => {
+			mousePosRef.current = null;
+		};
+
 		// Track page visibility AND window focus to pause spawning when inactive
 		// visibilitychange: fires when tab is hidden (e.g., switching browser tabs)
 		// blur/focus: fires when window loses/gains focus (e.g., switching to another app)
@@ -383,6 +408,10 @@ export function OrbField({
 		window.addEventListener('resize', handleResize);
 		window.addEventListener('mousemove', handleGlobalMouseMove);
 		document.addEventListener('mouseleave', handleGlobalMouseLeave);
+		window.addEventListener('touchstart', handleGlobalTouchStart, { passive: true });
+		window.addEventListener('touchmove', handleGlobalTouchMove, { passive: true });
+		window.addEventListener('touchend', handleGlobalTouchEnd);
+		window.addEventListener('touchcancel', handleGlobalTouchEnd);
 		document.addEventListener('visibilitychange', handleVisibilityChange);
 		window.addEventListener('focus', handleWindowFocus);
 		window.addEventListener('blur', handleWindowBlur);
@@ -391,6 +420,10 @@ export function OrbField({
 			window.removeEventListener('resize', handleResize);
 			window.removeEventListener('mousemove', handleGlobalMouseMove);
 			document.removeEventListener('mouseleave', handleGlobalMouseLeave);
+			window.removeEventListener('touchstart', handleGlobalTouchStart);
+			window.removeEventListener('touchmove', handleGlobalTouchMove);
+			window.removeEventListener('touchend', handleGlobalTouchEnd);
+			window.removeEventListener('touchcancel', handleGlobalTouchEnd);
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			window.removeEventListener('focus', handleWindowFocus);
 			window.removeEventListener('blur', handleWindowBlur);
@@ -555,13 +588,14 @@ export function OrbField({
 			// Phase 10: Continuous spawning to maintain target orb count
 			// Only spawn if page is visible, burst has happened, and spawning is enabled
 			const burstTime = burstTimeRef.current;
-			const { targetOrbCountAt4K, referenceScreenArea, delayAfterBurstMs, baseSpawnRateAt4K, maxSpawnsPerFrame } = DEFAULT_CONTINUOUS_SPAWN_CONFIG;
+			const { targetOrbCountAt4K, referenceScreenArea, minOrbCount, delayAfterBurstMs, baseSpawnRateAt4K, maxSpawnsPerFrame } = DEFAULT_CONTINUOUS_SPAWN_CONFIG;
 			if (burstTime && (now - burstTime) > delayAfterBurstMs && isPageVisibleRef.current && enableOrbSpawningRef.current) {
 				// Scale target and spawn rate linearly with screen area
-				// At 4K (3840x2160): 1000 orbs, at 1080p (1920x1080): ~250 orbs
+				// At 4K (3840x2160): 600 orbs, at 1080p (1920x1080): ~150 orbs, minimum 50 orbs on mobile
 				const screenArea = ws.width * ws.height;
 				const areaScale = screenArea / referenceScreenArea;
-				const targetOrbCount = Math.round(targetOrbCountAt4K * areaScale);
+				const scaledCount = Math.round(targetOrbCountAt4K * areaScale);
+				const targetOrbCount = Math.max(minOrbCount, scaledCount);
 				const baseSpawnRate = baseSpawnRateAt4K * areaScale;
 
 				const currentCount = orbsRef.current.length;
@@ -756,8 +790,14 @@ export function OrbField({
 
 			if (grid && vpc && ws.width > 0 && hasAnimatedRef.current) {
 				hasBurstRef.current = true;
-				const centerX = ws.width / 2;
-				const centerY = ws.height / 2;
+
+				// Calculate true screen center, accounting for scroll offset
+				// The scroll offset shifts the rendering, so we need to compensate
+				// by spawning orbs offset in the opposite direction
+				const currentOffset = currentScrollOffsetRef.current;
+				const centerX = (ws.width / 2) - currentOffset.x;
+				const centerY = (ws.height / 2) - currentOffset.y;
+
 				spawnOrbBurst(centerX, centerY, grid, vpc);
 				burstTimeRef.current = performance.now();
 			} else {
@@ -795,7 +835,7 @@ export function OrbField({
 
 		hoveredCellRef.current = cellInfo;
 		setHoveredCell(cellInfo);
-	}, [gridConfig]);
+	}, [gridConfig, isDebugMode]);
 
 	const handleClick = useCallback((e: React.MouseEvent) => {
 		const vpc = viewportCellsRef.current;
@@ -822,6 +862,76 @@ export function OrbField({
 
 	const handleMouseLeave = useCallback(() => {
 		// Debug mode only (mouse repulsion handled by global listener)
+		hoveredCellRef.current = null;
+		setHoveredCell(null);
+	}, []);
+
+	// Touch handlers for mobile (mirror mouse behavior)
+	const handleTouchStart = useCallback((e: React.TouchEvent) => {
+		const vpc = viewportCellsRef.current;
+		const grid = gridRef.current;
+		if (!grid || !vpc || !isDebugMode) return;
+
+		if (e.touches.length > 0) {
+			const touch = e.touches[0];
+			const currentOffset = currentScrollOffsetRef.current;
+			const adjustedX = touch.clientX - currentOffset.x;
+			const adjustedY = touch.clientY - currentOffset.y;
+
+			// Update hovered cell for touch
+			if (rollProgressRef.current >= 1) {
+				const gc = gridConfig;
+				if (!gc) return;
+
+				const cellX = vpc.startCellX + Math.floor(adjustedX / vpc.cellSizeXPx);
+				const cellY = vpc.startCellY + Math.floor(adjustedY / vpc.cellSizeYPx);
+
+				const cellInfo = {
+					x: cellX,
+					y: cellY,
+					worldX: gc.minXCm + cellX * vpc.cellSizeXCm,
+					worldY: gc.minYCm + cellY * vpc.cellSizeYCm,
+				};
+
+				hoveredCellRef.current = cellInfo;
+				setHoveredCell(cellInfo);
+			}
+
+			// Spawn orb on touch if enabled
+			if (enableSpawnOnClickRef.current) {
+				createOrb(adjustedX, adjustedY, currentLayerRef.current, orbSize, grid, vpc);
+			}
+		}
+	}, [orbSize, createOrb, isDebugMode, gridConfig]);
+
+	const handleTouchMove = useCallback((e: React.TouchEvent) => {
+		const vpc = viewportCellsRef.current;
+		const gc = gridConfig;
+		if (!vpc || !gc || rollProgressRef.current < 1 || !isDebugMode) return;
+
+		if (e.touches.length > 0) {
+			const touch = e.touches[0];
+			const currentOffset = currentScrollOffsetRef.current;
+			const adjustedX = touch.clientX - currentOffset.x;
+			const adjustedY = touch.clientY - currentOffset.y;
+
+			const cellX = vpc.startCellX + Math.floor(adjustedX / vpc.cellSizeXPx);
+			const cellY = vpc.startCellY + Math.floor(adjustedY / vpc.cellSizeYPx);
+
+			const cellInfo = {
+				x: cellX,
+				y: cellY,
+				worldX: gc.minXCm + cellX * vpc.cellSizeXCm,
+				worldY: gc.minYCm + cellY * vpc.cellSizeYCm,
+			};
+
+			hoveredCellRef.current = cellInfo;
+			setHoveredCell(cellInfo);
+		}
+	}, [gridConfig, isDebugMode]);
+
+	const handleTouchEnd = useCallback(() => {
+		// Clear hovered cell on touch end
 		hoveredCellRef.current = null;
 		setHoveredCell(null);
 	}, []);
@@ -855,6 +965,10 @@ export function OrbField({
 				onMouseMove={handleMouseMove}
 				onMouseLeave={handleMouseLeave}
 				onClick={handleClick}
+				onTouchStart={handleTouchStart}
+				onTouchMove={handleTouchMove}
+				onTouchEnd={handleTouchEnd}
+				onTouchCancel={handleTouchEnd}
 				style={{
 					position: 'fixed',
 					inset: 0,

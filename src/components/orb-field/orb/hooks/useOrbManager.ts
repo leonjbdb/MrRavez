@@ -197,54 +197,71 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 		}
 	}, []);
 
-	/**
-	 * Spawns a burst of orbs from a center point with size-based distribution.
-	 * 
-	 * Implements:
-	 * - Weighted size selection (inverse square law - more small orbs than large)
-	 * - Size-based layer assignment (larger orbs on back layers)
-	 * - Size-scaled velocity (smaller orbs faster, larger orbs slower)
-	 * - Collision-safe positioning with retries
-	 * - Outward velocity from center point
-	 */
+/**
+ * Spawns a burst of orbs from a center point with size-based distribution.
+ * 
+ * Implements:
+ * - Weighted size selection (power law with exponent 1.3 for balanced distribution)
+ * - Size-based layer assignment (larger orbs on back layers)
+ * - Size-scaled velocity (smaller orbs faster, larger orbs slower)
+ * - Collision-safe positioning with retries
+ * - Outward velocity from center point
+ * - Staggered spawn timing for organic appearance
+ * - Position jitter for non-circular explosion pattern
+ */
 	const spawnOrbBurst = useCallback((
 		centerX: number,
 		centerY: number,
 		grid: SpatialGrid,
 		vpc: ViewportCells
 	) => {
-		const { targetCount, maxSize, spawnRadiusPx, maxRetries, minSpeed, maxSpeed, minLifetimeMs, maxLifetimeMs } = burstConfig;
+		const { targetCount, maxSize, spawnRadiusPx, maxRetries, minSpeed, maxSpeed, minLifetimeMs, maxLifetimeMs, spawnDelayMaxMs, positionJitterPx } = burstConfig;
 		const totalLayers = grid.config.layers;
 		const newOrbs: Orb[] = [];
 
-		// Helper: Weighted random size selection (inverse square law)
-		const getRandomSize = (): number => {
-			// Build cumulative weights: 1/(1^2), 1/(2^2), 1/(3^2), etc.
-			const weights: number[] = [];
-			let sum = 0;
-			for (let size = 1; size <= maxSize; size++) {
-				const weight = 1 / (size * size);
-				sum += weight;
-				weights.push(sum);
-			}
+	// Helper: Weighted random size selection (gentler distribution)
+	// Uses 1/(size^1.3) instead of 1/(size^2) for more larger orbs
+	const getRandomSize = (): number => {
+		// Build cumulative weights: 1/(1^1.3), 1/(2^1.3), 1/(3^1.3), etc.
+		const weights: number[] = [];
+		let sum = 0;
+		for (let size = 1; size <= maxSize; size++) {
+			const weight = 1 / Math.pow(size, 1.3);
+			sum += weight;
+			weights.push(sum);
+		}
 
-			// Random selection
-			const rand = Math.random() * sum;
-			for (let i = 0; i < weights.length; i++) {
-				if (rand <= weights[i]) {
-					return i + 1;
-				}
+		// Random selection
+		const rand = Math.random() * sum;
+		for (let i = 0; i < weights.length; i++) {
+			if (rand <= weights[i]) {
+				return i + 1;
 			}
-			return 1; // Fallback
-		};
+		}
+		return 1; // Fallback
+	};
 
-		// Helper: Get random position near center within spawn radius
+		// Helper: Get random position near center with organic distribution
+		// Uses power distribution for distance to cluster more orbs near center
+		// Adds jitter for irregular explosion pattern (not a perfect circle)
 		const getRandomPosition = (): { x: number; y: number } => {
 			const angle = Math.random() * Math.PI * 2;
-			const distance = Math.random() * spawnRadiusPx;
+			// Use sqrt for more center-weighted distribution (power = 0.5)
+			// This creates more density near center with gradual falloff
+			const normalizedDistance = Math.pow(Math.random(), 0.6);
+			const distance = normalizedDistance * spawnRadiusPx;
+			
+			// Calculate base position
+			const baseX = centerX + Math.cos(angle) * distance;
+			const baseY = centerY + Math.sin(angle) * distance;
+			
+			// Add position jitter for organic look
+			const jitterX = (Math.random() - 0.5) * 2 * positionJitterPx;
+			const jitterY = (Math.random() - 0.5) * 2 * positionJitterPx;
+			
 			return {
-				x: centerX + Math.cos(angle) * distance,
-				y: centerY + Math.sin(angle) * distance,
+				x: baseX + jitterX,
+				y: baseY + jitterY,
 			};
 		};
 
@@ -274,21 +291,33 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 			const dy = spawnPos.y - centerY;
 			const angle = Math.atan2(dy, dx);
 
-			// Size-based speed scaling (inverse square root - consistent with OrbPhysics)
+			// Enhanced size-based speed scaling with more variance
 			// Smaller orbs get higher velocities, larger orbs get lower velocities
+			// Using inverse square root for size scaling (consistent with physics)
 			const sizeSpeedFactor = 1 / Math.sqrt(size);
+			
+			// Add extra randomness: use a power distribution to favor higher speeds
+			// Math.pow(random, 0.6) gives more values toward 1.0 (higher speeds)
+			const speedRandomness = Math.pow(Math.random(), 0.6);
+			
 			const scaledMinSpeed = minSpeed * sizeSpeedFactor;
 			const scaledMaxSpeed = maxSpeed * sizeSpeedFactor;
-			const speed = scaledMinSpeed + Math.random() * (scaledMaxSpeed - scaledMinSpeed);
+			const speed = scaledMinSpeed + speedRandomness * (scaledMaxSpeed - scaledMinSpeed);
 
 			// Random lifetime between min and max
 			const lifetimeMs = minLifetimeMs + Math.random() * (maxLifetimeMs - minLifetimeMs);
+
+			// Random spawn delay for staggered appearance (0 to spawnDelayMaxMs)
+			const spawnDelay = Math.random() * spawnDelayMaxMs;
 
 			// Generate random animation durations and wander params for this orb
 			const animDurations = generateAnimationDurations();
 			const wanderParams = generateWanderParams();
 
-			// Create orb
+			// Create orb with spawn delay applied to createdAt
+			// By subtracting the delay, orbs created "in the past" will be further along in their spawn animation
+			// This creates a staggered visual effect where orbs appear over spawnDelayMaxMs duration
+			const now = performance.now();
 			const newOrb: Orb = {
 				id: crypto.randomUUID(),
 				pxX: spawnPos.x,
@@ -300,7 +329,7 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 				speed,
 				angle,
 				size,
-				createdAt: performance.now(),
+				createdAt: now - spawnDelay,
 				lifetimeMs,
 				spawnAnimDurationMs: animDurations.spawnAnimDurationMs,
 				despawnAnimDurationMs: animDurations.despawnAnimDurationMs,
@@ -338,23 +367,24 @@ export function useOrbManager(options: UseOrbManagerOptions = {}): UseOrbManager
 		const totalLayers = grid.config.layers;
 		const newOrbs: Orb[] = [];
 
-		// Helper: Weighted random size selection (inverse square law)
-		const getRandomSize = (): number => {
-			const weights: number[] = [];
-			let sum = 0;
-			for (let size = 1; size <= maxSize; size++) {
-				const weight = 1 / (size * size);
-				sum += weight;
-				weights.push(sum);
+	// Helper: Weighted random size selection (gentler distribution)
+	// Uses 1/(size^1.3) instead of 1/(size^2) for more larger orbs
+	const getRandomSize = (): number => {
+		const weights: number[] = [];
+		let sum = 0;
+		for (let size = 1; size <= maxSize; size++) {
+			const weight = 1 / Math.pow(size, 1.3);
+			sum += weight;
+			weights.push(sum);
+		}
+		const rand = Math.random() * sum;
+		for (let i = 0; i < weights.length; i++) {
+			if (rand <= weights[i]) {
+				return i + 1;
 			}
-			const rand = Math.random() * sum;
-			for (let i = 0; i < weights.length; i++) {
-				if (rand <= weights[i]) {
-					return i + 1;
-				}
-			}
-			return 1;
-		};
+		}
+		return 1;
+	};
 
 		// Helper: Get random position within viewport (with margin from edges)
 		const getRandomPosition = (): { x: number; y: number } => {

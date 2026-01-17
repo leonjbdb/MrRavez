@@ -76,6 +76,10 @@ export interface OrbBurstConfig {
 	minLifetimeMs: number;
 	/** Maximum lifetime for orbs in milliseconds. */
 	maxLifetimeMs: number;
+	/** Maximum spawn delay for staggered appearance (milliseconds). */
+	spawnDelayMaxMs: number;
+	/** Random position offset added to spawn positions for organic look (pixels). */
+	positionJitterPx: number;
 }
 
 /**
@@ -146,12 +150,14 @@ export const DEFAULT_WANDER_CONFIG: OrbWanderConfig = {
 export const DEFAULT_ORB_BURST_CONFIG: OrbBurstConfig = {
 	targetCount: 87,       // Target number of orbs (75-100 range)
 	maxSize: 8,            // Cap at size 8
-	spawnRadiusPx: 150,    // Spawn within 150px radius from center
+	spawnRadiusPx: 30,     // Spawn within 30px radius from center (very tight explosion)
 	maxRetries: 20,        // Try up to 20 positions per orb
-	minSpeed: 750,         // Base min speed for size 1 orbs (increased for explosion feel)
-	maxSpeed: 1000,         // Base max speed for size 1 orbs (increased for explosion feel)
+	minSpeed: 400,         // Base min speed for size 1 orbs (wide range for variance)
+	maxSpeed: 1400,        // Base max speed for size 1 orbs (high speeds for dramatic effect)
 	minLifetimeMs: 10000,  // Minimum lifetime: 10 seconds
 	maxLifetimeMs: 180000, // Maximum lifetime: 3 minutes
+	spawnDelayMaxMs: 100,  // Stagger orb appearances over 100ms (tighter burst)
+	positionJitterPx: 15,  // Add ±15px random offset to positions
 };
 
 /**
@@ -162,6 +168,8 @@ export interface ContinuousSpawnConfig {
 	targetOrbCountAt4K: number;
 	/** Reference screen area for 4K resolution (3840 * 2160). */
 	referenceScreenArea: number;
+	/** Minimum orb count for small screens (mobile devices). */
+	minOrbCount: number;
 	/** Delay after burst before continuous spawning starts (milliseconds). */
 	delayAfterBurstMs: number;
 	/** Base spawn rate per second when at 0 orbs (at 4K, scales with screen). */
@@ -175,11 +183,12 @@ export interface ContinuousSpawnConfig {
 /**
  * Default configuration for continuous orb spawning.
  * Orb count and spawn rate scale linearly with screen area.
- * At 4K: 600 orbs, at 1080p: ~150 orbs.
+ * At 4K: 600 orbs, at 1080p: ~150 orbs, minimum 50 orbs on mobile.
  */
 export const DEFAULT_CONTINUOUS_SPAWN_CONFIG: ContinuousSpawnConfig = {
 	targetOrbCountAt4K: 600,           // Target at 4K resolution (reduced by 2/5ths)
 	referenceScreenArea: 3840 * 2160,  // 4K resolution area (8,294,400 pixels)
+	minOrbCount: 50,                   // Minimum orbs for mobile devices
 	delayAfterBurstMs: 3000,           // Wait 3 seconds after burst
 	baseSpawnRateAt4K: 50,             // Base spawn rate at 4K
 	maxSpawnsPerFrame: 5,              // Max 5 orbs per frame for smooth spawning
