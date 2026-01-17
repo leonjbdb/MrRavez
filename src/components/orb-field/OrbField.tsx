@@ -50,6 +50,9 @@ const SCROLL_OFFSET_REFERENCE = 0.75;
 /** Smoothing factor for interpolating scroll offset (0-1, lower = smoother). */
 const SCROLL_OFFSET_SMOOTHING = 0.08;
 
+/** Pixels of grid movement per unit of device tilt (0-1 range). */
+const DEVICE_TILT_OFFSET_PX = 30;
+
 /**
  * Props for the OrbField component.
  */
@@ -72,6 +75,10 @@ interface OrbFieldProps {
 	scrollProgress?: number;
 	/** Whether device is mobile (affects scroll direction: horizontal vs vertical). */
 	isMobile?: boolean;
+	/** Device tilt X (0-1, 0.5 = center) for parallax offset */
+	deviceTiltX?: number;
+	/** Device tilt Y (0-1, 0.5 = center) for parallax offset */
+	deviceTiltY?: number;
 }
 
 /**
@@ -95,6 +102,8 @@ export function OrbField({
 	onAnimationComplete,
 	scrollProgress = SCROLL_OFFSET_REFERENCE,
 	isMobile = false,
+	deviceTiltX = 0.5,
+	deviceTiltY = 0.5,
 }: OrbFieldProps) {
 	// =========================================================================
 	// Refs for High-Performance Loop (No Re-renders)
@@ -119,6 +128,8 @@ export function OrbField({
 	const isPageVisibleRef = useRef(typeof document !== 'undefined' ? !document.hidden : true); // Track if page/tab is visible (pause spawning when hidden)
 	const scrollProgressRef = useRef(scrollProgress); // Track scroll progress for parallax offset
 	const isMobileRef = useRef(isMobile); // Track mobile mode for scroll direction
+	const deviceTiltXRef = useRef(deviceTiltX); // Track device tilt X for parallax offset
+	const deviceTiltYRef = useRef(deviceTiltY); // Track device tilt Y for parallax offset
 	const currentScrollOffsetRef = useRef({ x: 0, y: 0 }); // Smoothly interpolated scroll offset for rendering
 	const isDebugModeRef = useRef(false); // Track debug mode for animation loop
 	const pausedAtTimeRef = useRef<number | null>(null); // When physics was paused (for freezing time)
@@ -333,6 +344,8 @@ export function OrbField({
 	useEffect(() => { currentLayerRef.current = currentLayer; }, [currentLayer]);
 	useEffect(() => { scrollProgressRef.current = scrollProgress; }, [scrollProgress]);
 	useEffect(() => { isMobileRef.current = isMobile; }, [isMobile]);
+	useEffect(() => { deviceTiltXRef.current = deviceTiltX; }, [deviceTiltX]);
+	useEffect(() => { deviceTiltYRef.current = deviceTiltY; }, [deviceTiltY]);
 
 	// =========================================================================
 	// 1. Mount & Resize Logic + Global Mouse Tracking
@@ -658,8 +671,17 @@ export function OrbField({
 		// Desktop: vertical offset (move up as scroll increases)
 		// Mobile: horizontal offset (move left as scroll increases)
 		const scrollOffset = -(scrollProgressRef.current - SCROLL_OFFSET_REFERENCE) * SCROLL_OFFSET_PX_PER_UNIT;
-		const targetOffsetX = isMobileRef.current ? scrollOffset : 0;
-		const targetOffsetY = isMobileRef.current ? 0 : scrollOffset;
+		const scrollTargetOffsetX = isMobileRef.current ? scrollOffset : 0;
+		const scrollTargetOffsetY = isMobileRef.current ? 0 : scrollOffset;
+
+		// Device tilt offset: move grid opposite to tilt direction
+		// tiltX/Y are 0-1 where 0.5 = center, so center them and scale
+		const tiltOffsetX = (deviceTiltXRef.current - 0.5) * 2 * DEVICE_TILT_OFFSET_PX;
+		const tiltOffsetY = (deviceTiltYRef.current - 0.5) * 2 * DEVICE_TILT_OFFSET_PX;
+
+		// Combine scroll and tilt offsets
+		const targetOffsetX = scrollTargetOffsetX + tiltOffsetX;
+		const targetOffsetY = scrollTargetOffsetY + tiltOffsetY;
 
 		// Smoothly interpolate toward target offset for buttery animation
 		const current = currentScrollOffsetRef.current;

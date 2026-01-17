@@ -5,6 +5,7 @@ import { useTheme } from "@/components/providers";
 import { ScrollDotIndicator } from "@/components/ui/ScrollDotIndicator";
 import { GridView } from "@/components/orb-field";
 import { GlassSlider } from "@/components/glass";
+import { useDeviceOrientation } from "@/hooks/useDeviceOrientation";
 import {
     useAnimationStages,
     useCardTransition,
@@ -37,6 +38,9 @@ export function HomePage({ initialSection }: HomePageProps) {
     const handleGridAnimationComplete = useCallback(() => {
         setGridAnimationComplete(true);
     }, []);
+
+    // Device orientation for grid parallax offset
+    const { rawTiltX, rawTiltY } = useDeviceOrientation();
 
     // Animation stage management (intro sequence)
     const { stage, isReady } = useAnimationStages({ skipAnimation });
@@ -88,6 +92,8 @@ export function HomePage({ initialSection }: HomePageProps) {
                 onAnimationComplete={handleGridAnimationComplete}
                 scrollProgress={scrollProgress}
                 isMobile={isMobile}
+                deviceTiltX={rawTiltX}
+                deviceTiltY={rawTiltY}
             />
 
             <main

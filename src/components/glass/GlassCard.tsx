@@ -86,7 +86,7 @@ export function GlassCard({
     const hasOrientationData = hasPermission || (tiltX !== 0.5 || tiltY !== 0.5);
     let mobileTiltTransform: string | null = null;
     if (isTouchDevice && hasOrientationData) {
-        const maxTilt = 6; // Double the desktop max (3 degrees)
+        const maxTilt = 18; // 3x more extreme than before (was 6)
         // Center the values: 0.5 becomes 0, range becomes -0.5 to 0.5
         // Then scale to max rotation (0.5 * 2 * maxTilt = maxTilt at full tilt)
         const rotateY = (tiltX - 0.5) * 2 * maxTilt;  // left-right
