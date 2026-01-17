@@ -20,6 +20,7 @@ import {
 	type GridStyleConfig,
 } from './shared/config';
 import { DEFAULT_SPEED_LIMIT_CONFIG, DEFAULT_ORB_SPAWN_CONFIG, DEFAULT_LAYER_ATTRACTION_CONFIG, DEFAULT_CONTINUOUS_SPAWN_CONFIG } from './orb/config';
+import { OrbVisualRenderer } from './orb/visuals/OrbVisualRenderer';
 import { GridRenderer } from './grid/visuals/GridRenderer';
 import { GridAnimator } from './grid/visuals/GridAnimator';
 import { OrbDebugPanel } from './debug-info/components/OrbDebugPanel';
@@ -66,6 +67,7 @@ export function OrbField({
 	// Refs for High-Performance Loop (No Re-renders)
 	// =========================================================================
 	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const visualCanvasRef = useRef<HTMLCanvasElement>(null);
 	const gridRef = useRef<SpatialGrid | null>(null);
 	const animatorRef = useRef<GridAnimator | null>(null);
 	const loopIdRef = useRef<number | null>(null);
@@ -322,10 +324,16 @@ export function OrbField({
 			}
 		}
 
-		// B. Canvas Size Sync
+		// B. Canvas Size Sync (both debug and visual canvases)
 		if (canvas.width !== ws.width || canvas.height !== ws.height) {
 			canvas.width = ws.width;
 			canvas.height = ws.height;
+		}
+
+		const visualCanvas = visualCanvasRef.current;
+		if (visualCanvas && (visualCanvas.width !== ws.width || visualCanvas.height !== ws.height)) {
+			visualCanvas.width = ws.width;
+			visualCanvas.height = ws.height;
 		}
 
 		// C. Opacity Fade Logic (non-debug mode)
@@ -339,7 +347,7 @@ export function OrbField({
 		}
 		canvas.style.opacity = finalOpacity.toString();
 
-		// D. Render Frame
+		// D. Render Debug Frame (grid lines, occupied cells, debug visuals)
 		GridRenderer.draw(
 			ctx,
 			ws,
@@ -353,7 +361,21 @@ export function OrbField({
 			IS_DEBUG_MODE ? orbsRef.current : []
 		);
 
-		// E. Debug Panel Sync
+		// E. Render Visual Orbs (maroon orbs with glow and depth blur)
+		// Uses separate canvas layer (visualCanvasRef) to appear behind page content
+		if (visualCanvas && easedProgress >= 1) {
+			const visualCtx = visualCanvas.getContext('2d');
+			if (visualCtx) {
+				OrbVisualRenderer.draw(
+					visualCtx,
+					ws,
+					orbsRef.current,
+					grid.config.layers
+				);
+			}
+		}
+
+		// F. Debug Panel Sync
 		if (IS_DEBUG_MODE && selectedOrbIdRef.current) {
 			updateSelectedOrbData();
 		}
@@ -467,8 +489,23 @@ export function OrbField({
 
 	const { canvasZIndex, debugPanelZIndex } = DEFAULT_ORBFIELD_CONFIG;
 
+	// Visual orb canvas sits behind content but above page background (z-index: 0)
+	const visualCanvasZIndex = 0;
+
 	return (
 		<>
+			{/* Visual Orb Canvas - renders maroon orbs with glow and depth blur */}
+			<canvas
+				ref={visualCanvasRef}
+				style={{
+					position: 'fixed',
+					inset: 0,
+					pointerEvents: 'none',
+					zIndex: visualCanvasZIndex,
+				}}
+			/>
+
+			{/* Debug/Grid Canvas - renders grid lines and debug visuals */}
 			<canvas
 				ref={canvasRef}
 				onMouseMove={handleMouseMove}

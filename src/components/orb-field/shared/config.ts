@@ -109,6 +109,6 @@ export const DEFAULT_STYLE_CONFIG: GridStyleConfig = {
 export const DEFAULT_ORBFIELD_CONFIG: OrbFieldConfig = {
 	defaultOpacity: 0.6,
 	fadeOutStart: 0.8,
-	canvasZIndex: 1,
-	debugPanelZIndex: 2,
+	canvasZIndex: 2,      // Debug canvas above homepage content
+	debugPanelZIndex: 3,  // Debug panels above everything
 };

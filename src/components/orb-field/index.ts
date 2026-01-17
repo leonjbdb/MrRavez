@@ -38,6 +38,11 @@ export {
 	type OrbSpawnConfig,
 	type OrbDebugVisualConfig,
 } from './orb/config';
+export {
+	OrbVisualRenderer,
+	DEFAULT_ORB_VISUAL_CONFIG,
+	type OrbVisualConfig,
+} from './orb/visuals';
 
 // Visualization
 export { default as GridView } from './OrbField';

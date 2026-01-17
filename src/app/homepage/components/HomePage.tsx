@@ -51,7 +51,8 @@ export function HomePage({ initialSection }: HomePageProps) {
     });
 
     // Dynamic background based on theme
-    const homepageBackground = stage >= 2 ? (theme === "light" ? "#e8e4e0" : "#000000") : undefined;
+    // When stage >= 2, background is transparent (via CSS) to show orbs through
+    const homepageBackground = stage >= 2 ? "transparent" : "#000000";
 
     return (
         <>
