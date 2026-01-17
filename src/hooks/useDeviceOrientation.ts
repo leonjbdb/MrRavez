@@ -41,14 +41,14 @@ export function useDeviceOrientation(): DeviceOrientation {
 			// Capture initial orientation on first valid reading
 			if (initialOrientation === null) {
 				setInitialOrientation({
-					beta: clamp(e.beta, -45, 45),
+					beta: clamp(e.beta, -90, 90),
 					gamma: clamp(e.gamma, -45, 45),
 				});
 			}
 
 			// Store the latest orientation data
 			pendingOrientationRef.current = {
-				beta: clamp(e.beta, -45, 45),
+				beta: clamp(e.beta, -90, 90),
 				gamma: clamp(e.gamma, -45, 45),
 			};
 
@@ -117,7 +117,7 @@ export function useDeviceOrientation(): DeviceOrientation {
 
 	// Calculate raw tilt values (absolute, 0.5 = device flat)
 	const rawTiltX = (orientation.gamma + 45) / 90;
-	const rawTiltY = (orientation.beta + 45) / 90;
+	const rawTiltY = (orientation.beta + 90) / 180;
 
 	// Calculate calibrated tilt values (relative to initial position)
 	let tiltX = rawTiltX;
@@ -126,7 +126,7 @@ export function useDeviceOrientation(): DeviceOrientation {
 	if (initialOrientation !== null) {
 		// Calculate offset from initial position
 		const initialX = (initialOrientation.gamma + 45) / 90;
-		const initialY = (initialOrientation.beta + 45) / 90;
+		const initialY = (initialOrientation.beta + 90) / 180;
 
 		// Center around initial position (initial = 0.5)
 		const offsetX = rawTiltX - initialX;
