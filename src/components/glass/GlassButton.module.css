@@ -1,0 +1,126 @@
+/* GlassButton styles */
+
+/* 
+ * Note: .link uses :global(.glass-button-link) because this class name is 
+ * referenced by other components for keyboard navigation and focus management.
+ */
+
+.link {
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 80px;
+    border-radius: 40px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    text-decoration: none;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    transform-origin: center center;
+    transform: scale(1);
+    will-change: transform;
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                background 0.25s ease,
+                border-color 0.25s ease,
+                box-shadow 0.25s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.link.isHovered {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transform: translateZ(50px) scale(1.05);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25),
+                0 4px 12px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 16px;
+    padding: 10px 24px 10px 12px;
+    color: var(--color-white, #ffffff);
+    transition: color 0.25s ease;
+}
+
+.link.isHovered .content {
+    color: var(--color-maroon, #4E0506);
+}
+
+.arrow {
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(-4px);
+}
+
+.link.isHovered .arrow {
+    transform: translateX(4px);
+}
+
+.icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.icon svg {
+    width: 56px;
+    height: 56px;
+}
+
+.label {
+    font-size: 15px;
+    flex: 1;
+    min-width: 0;
+    font-weight: 500;
+    white-space: nowrap;
+    word-break: keep-all;
+    overflow-wrap: normal;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 480px) {
+    .arrow {
+        display: none;
+    }
+
+    .icon {
+        width: 44px;
+        height: 44px;
+    }
+
+    .icon svg {
+        width: 36px;
+        height: 36px;
+    }
+
+    .content {
+        gap: 10px;
+        padding: 8px 16px 8px 8px;
+    }
+
+    .label {
+        font-size: 13px;
+        white-space: normal;
+        word-break: break-all;
+        overflow-wrap: anywhere;
+    }
+
+    .link {
+        min-height: 60px;
+    }
+}

@@ -1,0 +1,9 @@
+/* LinksCard layout styles */
+
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transform-style: preserve-3d;
+    width: 100%;
+}

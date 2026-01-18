@@ -4,16 +4,7 @@ import { use } from "react";
 import { notFound } from "next/navigation";
 import { DebugProvider } from "@/components/debug";
 import { HomePage } from "../../homepage/components";
-
-// Map card slugs to section indices
-const cardToSection: Record<string, number> = {
-	about: 0,
-	links: 1,
-	contact: 2,
-};
-
-// Valid card slugs
-const validCards = Object.keys(cardToSection);
+import { cardIdToIndex, validCardIds } from "@/config/cards.config";
 
 interface DebugCardPageProps {
 	params: Promise<{ card: string }>;
@@ -27,12 +18,12 @@ interface DebugCardPageProps {
 export default function DebugCardPage({ params }: DebugCardPageProps) {
 	const { card } = use(params);
 
-	// Validate card parameter
-	if (!validCards.includes(card)) {
+	// Validate card parameter using centralized config
+	if (!validCardIds.has(card)) {
 		notFound();
 	}
 
-	const initialSection = cardToSection[card];
+	const initialSection = cardIdToIndex[card];
 
 	return (
 		<DebugProvider initialEnabled={true} initialCard={card}>

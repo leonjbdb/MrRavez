@@ -55,7 +55,7 @@ export function AboutCard() {
 							height={140}
 							className={styles.aboutPhoto}
 							priority
-							unoptimized
+							unoptimized // To avoid Next.js image optimization, image is already optimized
 						/>
 					</div>
 				</div>

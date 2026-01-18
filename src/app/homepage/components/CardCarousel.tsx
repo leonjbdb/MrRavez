@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { AboutCard, LinksCard, ContactCard } from "@/components/cards";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { GlassCard } from "@/components/glass";
 import { useDebugSafe } from "@/components/debug";
 import { cardsConfig } from "@/config/cards.config";
@@ -30,17 +29,17 @@ const cardWrapperStyle: React.CSSProperties = {
 function AnimatedCard({
 	children,
 	visibility,
-	padding = "clamp(24px, 5vw, 40px)",
+	padding,
 	mobilePadding,
 	mobileBorderRadius,
 	ariaLabel,
 }: {
 	children: React.ReactNode;
 	visibility: SectionVisibility;
-	padding?: string;
-	mobilePadding?: string;
-	mobileBorderRadius?: number;
-	ariaLabel?: string;
+	padding: string;
+	mobilePadding: string;
+	mobileBorderRadius: number;
+	ariaLabel: string;
 }) {
 	return (
 		<GlassCard
@@ -65,8 +64,23 @@ function AnimatedCard({
 }
 
 /**
- * Renders all three cards with their visibility states
- * About, Links, and Contact cards with scroll-based animations
+ * Screen reader only styles for accessibility announcements
+ */
+const srOnlyStyle: React.CSSProperties = {
+	position: 'absolute',
+	width: '1px',
+	height: '1px',
+	padding: '0',
+	margin: '-1px',
+	overflow: 'hidden',
+	clip: 'rect(0, 0, 0, 0)',
+	whiteSpace: 'nowrap',
+	borderWidth: '0',
+};
+
+/**
+ * Renders all cards with their visibility states
+ * Cards are rendered dynamically from cardsConfig with scroll-based animations
  * 
  * Animation/transition logic is handled here via GlassCard wrapper,
  * card components only handle their content
@@ -82,11 +96,16 @@ export function CardCarousel({ visibility, isReady, activeSection }: CardCarouse
 	// Use context value if available, otherwise use local state
 	const showCards = debugContext?.state.showCards ?? localShowCards;
 
-	// Refs for each card container to manage focus
-	const aboutCardRef = useRef<HTMLDivElement>(null);
-	const linksCardRef = useRef<HTMLDivElement>(null);
-	const contactCardRef = useRef<HTMLDivElement>(null);
+	// Create refs for each card container
+	const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 	const previousActiveSectionRef = useRef<number>(activeSection);
+
+	// Map card IDs to their visibility state
+	const visibilityMap = useMemo(() => ({
+		about: visibility.about,
+		links: visibility.links,
+		contact: visibility.contact,
+	}), [visibility.about, visibility.links, visibility.contact]);
 
 	useEffect(() => {
 		if (isReady && !hasFadedIn) {
@@ -160,8 +179,6 @@ export function CardCarousel({ visibility, isReady, activeSection }: CardCarouse
 		return null;
 	}
 
-	const { about, links, contact } = visibility;
-
 	// Wrapper style for initial fade-in animation
 	const wrapperStyle: React.CSSProperties = {
 		position: 'relative',
@@ -179,58 +196,33 @@ export function CardCarousel({ visibility, isReady, activeSection }: CardCarouse
 			aria-label="Leon's Profile"
 		>
 			{/* Screen reader announcement for section changes */}
-			<div className="sr-only" aria-live="polite" aria-atomic="true" style={{
-				position: 'absolute',
-				width: '1px',
-				height: '1px',
-				padding: '0',
-				margin: '-1px',
-				overflow: 'hidden',
-				clip: 'rect(0, 0, 0, 0)',
-				whiteSpace: 'nowrap',
-				borderWidth: '0'
-			}}>
+			<div className="sr-only" aria-live="polite" aria-atomic="true" style={srOnlyStyle}>
 				{`Now showing: ${cardsConfig[activeSection]?.label || 'Section'} section`}
 			</div>
 
-			{/* About card with scroll-based fade in/out */}
-			<div ref={aboutCardRef} data-card-section="0">
-				<AnimatedCard
-					visibility={about}
-					padding="clamp(16px, 4vw, 30px)"
-					mobilePadding="20px"
-					mobileBorderRadius={40}
-					ariaLabel="About section"
-				>
-					<AboutCard />
-				</AnimatedCard>
-			</div>
+			{/* Render cards dynamically from config */}
+			{cardsConfig.map((cardConfig, index) => {
+				const CardComponent = cardConfig.component;
+				const cardVisibility = visibilityMap[cardConfig.id as keyof typeof visibilityMap];
 
-			{/* Links card with scroll-based fade in/out */}
-			<div ref={linksCardRef} data-card-section="1">
-				<AnimatedCard
-					visibility={links}
-					padding="clamp(16px, 4vw, 30px)"
-					mobilePadding="20px"
-					mobileBorderRadius={40}
-					ariaLabel="Links section"
-				>
-					<LinksCard />
-				</AnimatedCard>
-			</div>
-
-			{/* Contact card with scroll-based fade in */}
-			<div ref={contactCardRef} data-card-section="2">
-				<AnimatedCard
-					visibility={contact}
-					padding="clamp(16px, 4vw, 30px)"
-					mobilePadding="20px"
-					mobileBorderRadius={40}
-					ariaLabel="Contact section"
-				>
-					<ContactCard />
-				</AnimatedCard>
-			</div>
+				return (
+					<div
+						key={cardConfig.id}
+						ref={(el) => { cardRefs.current[index] = el; }}
+						data-card-section={index}
+					>
+						<AnimatedCard
+							visibility={cardVisibility}
+							padding={cardConfig.style.padding}
+							mobilePadding={cardConfig.style.mobilePadding}
+							mobileBorderRadius={cardConfig.style.mobileBorderRadius}
+							ariaLabel={`${cardConfig.label} section`}
+						>
+							<CardComponent />
+						</AnimatedCard>
+					</div>
+				);
+			})}
 		</div>
 	);
 }

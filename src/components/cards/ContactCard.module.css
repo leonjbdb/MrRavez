@@ -1,0 +1,24 @@
+/* ContactCard layout styles */
+
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transform-style: preserve-3d;
+    width: 100%;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    transform-style: preserve-3d;
+}
+
+.label {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-white, #ffffff);
+    opacity: 0.7;
+    text-align: center;
+}
