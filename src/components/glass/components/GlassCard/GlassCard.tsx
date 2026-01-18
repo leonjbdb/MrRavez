@@ -1,54 +1,30 @@
 "use client";
 
-import { useRef, ReactNode, useId } from "react";
+import { useRef, useId } from "react";
 import { useDeviceOrientation, useTouchDevice } from "@/hooks";
-import { useCardTilt, useEntryExitAnimation, useOpacityVisibility, buildEntryExitTransform } from "./hooks";
+import { useCardTilt } from "../../hooks/tilt";
+import { useEntryExitAnimation, buildEntryExitTransform } from "../../hooks/animation";
+import { useOpacityVisibility } from "../../hooks/visibility";
+import { borderRadiusDefaults, paddingDefaults } from "../../styles";
+import type { GlassCardProps } from "../../types";
+import { GlassCardBackground } from "./GlassCardBackground";
+import { GlassCardContent } from "./GlassCardContent";
 import styles from "./GlassCard.module.css";
-
-interface GlassCardProps {
-	children?: ReactNode;
-	className?: string;
-	style?: React.CSSProperties;
-	borderRadius?: number;
-	padding?: string | number;
-	opacity?: number;
-	/** Entry animation progress (0-1), controls scale and translateY */
-	entryProgress?: number;
-	/** Exit animation progress (0-1), controls scale and translateY for exit */
-	exitProgress?: number;
-	/** Mobile horizontal offset in vw units for swipe animation (legacy, used as fallback) */
-	mobileOffset?: number;
-	/** Mobile scale for carousel effect (0.85-1.0) */
-	mobileScale?: number;
-	/** Mobile-specific border radius (applied at max-width: 480px) */
-	mobileBorderRadius?: number;
-	/** Mobile-specific padding (applied at max-width: 480px) */
-	mobilePadding?: string | number;
-	/** 3D wheel rotation around Y axis (degrees) for mobile carousel */
-	wheelRotateY?: number;
-	/** 3D wheel horizontal translation (px) for mobile carousel */
-	wheelTranslateX?: number;
-	/** 3D wheel depth translation (px) for mobile carousel */
-	wheelTranslateZ?: number;
-	/** Optional aria-label for the card */
-	ariaLabel?: string;
-}
 
 /**
  * GlassCard - A glassmorphic card component with 3D tilt effects
  * 
- * Refactored to follow SOLID principles:
- * - useTouchDevice: Shared touch device detection
- * - useCardTilt: 3D tilt based on mouse/device orientation
- * - useEntryExitAnimation: Entry/exit animation calculations
- * - useOpacityVisibility: Visibility management
+ * SOLID Refactoring:
+ * - Single Responsibility: Only orchestrates card UI
+ * - Open/Closed: Configuration via props and constants
+ * - Extracted: Background, content, tilt logic, animations
  */
 export function GlassCard({
 	children,
 	className,
 	style,
-	borderRadius = 60,
-	padding = 40,
+	borderRadius = borderRadiusDefaults.card,
+	padding = paddingDefaults.card,
 	opacity = 1,
 	entryProgress = 1,
 	exitProgress = 0,
@@ -92,7 +68,9 @@ export function GlassCard({
 	const paddingValue = typeof padding === "number" ? `${padding}px` : padding;
 	const mobilePaddingValue = mobilePadding
 		? (typeof mobilePadding === "number" ? `${mobilePadding}px` : mobilePadding)
-		: paddingValue;
+		: typeof paddingDefaults.cardMobile === "number"
+			? `${paddingDefaults.cardMobile}px`
+			: paddingDefaults.cardMobile;
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const { transform: _, ...styleWithoutTransform } = style || {};
@@ -164,57 +142,10 @@ export function GlassCard({
 					transformStyle: "preserve-3d",
 				}}
 			>
-				{/* Glass background with backdrop-filter */}
-				<div
-					className="glass-card-bg"
-					aria-hidden="true"
-					style={{
-						position: "absolute",
-						inset: 0,
-						borderRadius,
-						background: "rgba(255, 255, 255, 0.08)",
-						backdropFilter: "blur(24px) saturate(120%)",
-						WebkitBackdropFilter: "blur(24px) saturate(120%)",
-						boxShadow: `
-							0 25px 50px rgba(0, 0, 0, 0.25),
-							0 10px 20px rgba(0, 0, 0, 0.15),
-							inset 0 1px 0 rgba(255, 255, 255, 0.2),
-							inset 0 -1px 0 rgba(0, 0, 0, 0.1)
-						`,
-						border: "1px solid rgba(255, 255, 255, 0.15)",
-						zIndex: 0,
-						pointerEvents: "none",
-						overflow: "hidden",
-					}}
-				>
-					{/* Top edge highlight */}
-					<div
-						aria-hidden="true"
-						style={{
-							position: "absolute",
-							top: 0,
-							left: 0,
-							right: 0,
-							height: 1,
-							background: "linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 20%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.5) 80%, transparent 100%)",
-							zIndex: 2,
-						}}
-					/>
-				</div>
-
-				{/* Content layer */}
-				<div
-					className="glass-card-content"
-					style={{
-						position: "relative",
-						zIndex: 1,
-						padding: paddingValue,
-						transform: "translateZ(10px)",
-						transformStyle: "preserve-3d",
-					}}
-				>
+				<GlassCardBackground borderRadius={borderRadius} />
+				<GlassCardContent padding={paddingValue}>
 					{children}
-				</div>
+				</GlassCardContent>
 			</div>
 		</div>
 	);

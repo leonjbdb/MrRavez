@@ -1,18 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-
-/**
- * Easing functions for animations
- */
-export const easings = {
-	/** Cubic ease-out for natural entry motion */
-	easeOutCubic: (t: number) => 1 - Math.pow(1 - t, 3),
-	/** Cubic ease-in for natural exit motion */
-	easeInCubic: (t: number) => t * t * t,
-	/** Linear (no easing) */
-	linear: (t: number) => t,
-} as const;
+import { easings } from "./easings";
 
 export interface EntryAnimationConfig {
 	/** Starting scale (default: 0.8) */
@@ -60,13 +49,7 @@ export interface UseEntryExitAnimationResult {
 
 /**
  * Hook for entry/exit animation calculations
- * Extracted from GlassCard to follow Single Responsibility Principle
- * 
- * Handles:
- * - Entry animation: scale up, translate in, rotate
- * - Exit animation: scale down, translate out, rotate
- * - Combining entry/exit with additional transforms
- * - Easing functions for natural motion
+ * Follows Single Responsibility Principle - only calculates animation values
  */
 export function useEntryExitAnimation(options: UseEntryExitAnimationOptions): UseEntryExitAnimationResult {
 	const {
@@ -118,45 +101,4 @@ export function useEntryExitAnimation(options: UseEntryExitAnimationOptions): Us
 			exitScale,
 		};
 	}, [entryProgress, exitProgress, additionalScale, entryConfig, exitConfig]);
-}
-
-/**
- * Build a CSS transform string for entry/exit animation
- */
-export function buildEntryExitTransform(
-	animation: UseEntryExitAnimationResult,
-	options: {
-		/** Horizontal offset in vw units */
-		horizontalOffset?: number;
-		/** Additional vertical shift (e.g., for mobile) */
-		verticalShift?: string;
-		/** Whether to center the element */
-		centered?: boolean;
-	} = {}
-): string {
-	const {
-		horizontalOffset = 0,
-		verticalShift = "",
-		centered = true,
-	} = options;
-
-	const { scale, translateY, rotateX } = animation;
-
-	if (centered) {
-		const verticalPart = verticalShift
-			? `calc(-50% + ${translateY}px ${verticalShift})`
-			: `calc(-50% + ${translateY}px)`;
-
-		return `
-			translate3d(calc(-50% + ${horizontalOffset}vw), ${verticalPart}, 0)
-			scale3d(${scale}, ${scale}, 1)
-			rotateX(${rotateX}deg)
-		`.replace(/\s+/g, ' ').trim();
-	}
-
-	return `
-		translate3d(${horizontalOffset}vw, ${translateY}px, 0)
-		scale3d(${scale}, ${scale}, 1)
-		rotateX(${rotateX}deg)
-	`.replace(/\s+/g, ' ').trim();
 }

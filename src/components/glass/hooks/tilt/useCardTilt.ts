@@ -1,8 +1,10 @@
 "use client";
 
 import { RefObject, useState, useEffect } from "react";
-import { useMouseProximity } from "./useMouseProximity";
-import { useTiltAnimation, calculateOrientationTilt } from "./useTiltAnimation";
+import { useMouseProximity } from "../interaction/useMouseProximity";
+import { useTiltAnimation } from "../animation/useTiltAnimation";
+import { calculateOrientationTilt } from "./orientationTilt";
+import { animationTimings } from "../../styles";
 
 export interface UseCardTiltOptions {
 	/** Reference to the card element */
@@ -136,10 +138,10 @@ export function useCardTilt(options: UseCardTiltOptions): UseCardTiltResult {
 
 	// Determine transition timing
 	const transitionStyle = isTouchDevice
-		? "transform 0.1s ease-out"  // Slightly longer for smooth device orientation
+		? `transform 0.1s ${animationTimings.easing.easeOut}`
 		: isHovering
-			? "transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)"
-			: "transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+			? `transform ${animationTimings.duration.fast} ${animationTimings.easing.smooth}`
+			: `transform ${animationTimings.duration.slow} ${animationTimings.easing.smooth}`;
 
 	return {
 		transform: mobileTiltTransform ?? transform,

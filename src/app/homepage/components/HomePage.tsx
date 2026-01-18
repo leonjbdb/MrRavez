@@ -5,7 +5,7 @@ import { useTheme } from "@/components/providers";
 import { ScrollDotIndicator } from "@/components/ui/ScrollDotIndicator";
 import { GridView } from "@/components/orb-field";
 import { GlassSlider } from "@/components/glass";
-import { useDeviceOrientation } from "@/hooks/useDeviceOrientation";
+import { useDeviceOrientation } from "@/hooks";
 import { cardsConfig } from "@/config/cards.config";
 import {
 	useAnimationStages,

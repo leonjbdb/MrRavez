@@ -1,22 +1,14 @@
 "use client";
 
-import { ReactNode } from "react";
-import { useInteraction3D } from "./hooks";
+import { useInteraction3D } from "../../hooks/interaction";
+import { GLASS_BUTTON_SELECTOR } from "../../types";
+import type { GlassButtonProps } from "../../types";
 import styles from "./GlassButton.module.css";
-
-interface GlassButtonProps {
-	icon: ReactNode;
-	label: string;
-	href: string;
-	target?: string;
-	rel?: string;
-}
 
 /**
  * GlassButton - A glassmorphic button/link component with hover effects
- * 
- * Note: The 'glass-button-link' class is added alongside the module class
- * because it's used by other components for focus management and keyboard navigation.
+ * Follows Single Responsibility Principle - only renders a glass button
+ * Follows Open/Closed Principle - uses configuration constants
  */
 export function GlassButton({ icon, label, href, target, rel }: GlassButtonProps) {
 	const { isActive, interactionProps } = useInteraction3D({
@@ -24,10 +16,10 @@ export function GlassButton({ icon, label, href, target, rel }: GlassButtonProps
 		enableFocus: true,
 	});
 
-	// Build className - 'glass-button-link' is kept for cross-component compatibility
+	// Build className using selector constant
 	const linkClassName = [
 		styles.link,
-		'glass-button-link',
+		GLASS_BUTTON_SELECTOR,
 		isActive ? styles.isHovered : '',
 	].filter(Boolean).join(' ');
 

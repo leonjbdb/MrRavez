@@ -1,8 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useInteraction3D } from "./hooks";
+import { useInteraction3D } from "../../hooks/interaction";
 import styles from "./HoverablePhoto.module.css";
+
+// Configuration constant following Open/Closed Principle
+export const DEFAULT_PHOTO_SIZE = 140;
 
 interface HoverablePhotoProps {
 	src: string;
@@ -12,10 +15,11 @@ interface HoverablePhotoProps {
 }
 
 /**
- * HoverablePhoto - A photo component with 3D hover effect
- * Uses the same interaction pattern as GlassButton for consistency
+ * HoverablePhoto - A photo component with 3D hover effects
+ * Follows Single Responsibility Principle - only renders a hoverable photo
+ * Follows Open/Closed Principle - size is configurable via props
  */
-export function HoverablePhoto({ src, alt, size = 140, priority }: HoverablePhotoProps) {
+export function HoverablePhoto({ src, alt, size = DEFAULT_PHOTO_SIZE, priority }: HoverablePhotoProps) {
 	const { isActive, interactionProps } = useInteraction3D({ trigger: 'hover' });
 
 	return (

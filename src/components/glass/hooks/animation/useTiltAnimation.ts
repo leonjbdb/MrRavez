@@ -34,12 +34,7 @@ export interface UseTiltAnimationResult {
 
 /**
  * Hook for smooth tilt animation with mouse tracking
- * Extracted from useCardTilt to follow Single Responsibility Principle
- * 
- * Handles:
- * - Smooth interpolation between current and target values
- * - RequestAnimationFrame-based animation loop
- * - Transform calculation from mouse position
+ * Follows Single Responsibility Principle - only handles tilt animation
  */
 export function useTiltAnimation(options: UseTiltAnimationOptions): UseTiltAnimationResult {
 	const {
@@ -158,20 +153,4 @@ export function useTiltAnimation(options: UseTiltAnimationOptions): UseTiltAnima
 		resetTilt,
 		startAnimation,
 	};
-}
-
-/**
- * Calculate tilt transform for device orientation (mobile)
- */
-export function calculateOrientationTilt(
-	tiltX: number,
-	tiltY: number,
-	maxTilt: number = 18
-): string {
-	// Center the values: 0.5 becomes 0, range becomes -0.5 to 0.5
-	// Then scale to max rotation
-	const rotateY = -(tiltX - 0.5) * 2 * maxTilt;  // left-right (inverted so card faces user)
-	const rotateX = (tiltY - 0.5) * 2 * maxTilt;   // front-back (positive so card faces user)
-
-	return `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1, 1, 1)`;
 }

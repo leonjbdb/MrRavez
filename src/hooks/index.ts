@@ -1,2 +1,2 @@
-export { useDeviceOrientation } from "./useDeviceOrientation";
-export { useTouchDevice, useSupportsHover, useMobileViewport } from "./useTouchDevice";
+export { useDeviceOrientation } from "./orientation";
+export { useTouchDevice, useSupportsHover, useMobileViewport } from "./device";

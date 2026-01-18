@@ -1,14 +1,24 @@
 "use client";
 
 import { useRef, useEffect, RefObject } from "react";
+import { GLASS_BUTTON_SELECTOR } from "@/components/glass";
+
+export interface UseCardKeyboardNavigationOptions {
+	/** CSS selector for focusable elements (default: glass button selector) */
+	selector?: string;
+}
 
 /**
- * Hook for keyboard navigation within card button lists.
- * Handles ArrowUp/ArrowDown navigation between glass-button-link elements.
+ * Hook for keyboard navigation within card button lists
+ * Follows Open/Closed Principle - selector is configurable
  * 
+ * @param options - Configuration options
  * @returns A ref to attach to the container element containing the buttons
  */
-export function useCardKeyboardNavigation(): RefObject<HTMLDivElement | null> {
+export function useCardKeyboardNavigation(
+	options: UseCardKeyboardNavigationOptions = {}
+): RefObject<HTMLDivElement | null> {
+	const { selector = GLASS_BUTTON_SELECTOR } = options;
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -27,8 +37,8 @@ export function useCardKeyboardNavigation(): RefObject<HTMLDivElement | null> {
 				return;
 			}
 
-			// Get all buttons within this card
-			const buttons = Array.from(container.querySelectorAll<HTMLAnchorElement>('.glass-button-link'));
+			// Get all buttons within this card using the configured selector
+			const buttons = Array.from(container.querySelectorAll<HTMLAnchorElement>(`.${selector}`));
 			const currentIndex = buttons.indexOf(activeElement as HTMLAnchorElement);
 
 			if (currentIndex === -1) return;
@@ -56,7 +66,7 @@ export function useCardKeyboardNavigation(): RefObject<HTMLDivElement | null> {
 		return () => {
 			window.removeEventListener("keydown", handleKeyDown, true);
 		};
-	}, []);
+	}, [selector]);
 
 	return containerRef;
 }
