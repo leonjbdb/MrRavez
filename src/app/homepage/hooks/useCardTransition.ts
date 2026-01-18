@@ -593,28 +593,45 @@ export function useCardTransition({
 		[activeSection, navigateToSection, cancelSnap]
 	);
 
-	// Handle keyboard navigation
+	// Handle keyboard navigation - instant response, cancels any ongoing animation
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent) => {
-			if (!enabled || isSnappingRef.current) return;
+			if (!enabled) return;
 
 			if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
 				return;
 			}
 
+			let targetSection: number | null = null;
+
 			if (e.key === "ArrowDown" || e.key === "ArrowRight") {
 				if (!hasPassedGreeting) {
-					navigateToSection(0);
+					targetSection = 0;
 				} else if (activeSection < 2) {
-					navigateToSection(activeSection + 1);
+					targetSection = activeSection + 1;
 				}
 			} else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
 				if (hasPassedGreeting && activeSection > 0) {
-					navigateToSection(activeSection - 1);
+					targetSection = activeSection - 1;
 				}
 			}
+
+			if (targetSection !== null) {
+				// Cancel any ongoing animations so we can start fresh (same as dot click)
+				cancelSnap();
+				if (snapTimeoutRef.current) {
+					clearTimeout(snapTimeoutRef.current);
+					snapTimeoutRef.current = undefined;
+				}
+
+				// Reset snapping ref so navigateToSection doesn't block
+				isSnappingRef.current = false;
+
+				// Use ease-out for immediate visual feedback
+				navigateToSection(targetSection, true);
+			}
 		},
-		[enabled, hasPassedGreeting, activeSection, navigateToSection]
+		[enabled, hasPassedGreeting, activeSection, navigateToSection, cancelSnap]
 	);
 
 	// Auto-snap to first card on mobile when greeting completes

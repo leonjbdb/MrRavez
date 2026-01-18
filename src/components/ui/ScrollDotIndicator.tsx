@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useEffect } from "react";
 
 interface ScrollDotIndicatorProps {
 	totalSections: number;
@@ -21,31 +21,22 @@ export function ScrollDotIndicator({
 }: ScrollDotIndicatorProps) {
 	// Refs for each dot button
 	const dotRefs = useRef<(HTMLButtonElement | null)[]>([]);
+	
+	// Track if any dot currently has focus
+	const hasFocusRef = useRef(false);
 
-	// Handle arrow key navigation within the dot indicator
-	const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-		let targetIndex: number | null = null;
-
-		if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-			e.preventDefault();
-			targetIndex = Math.min(totalSections - 1, currentIndex + 1);
-		} else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
-			e.preventDefault();
-			targetIndex = Math.max(0, currentIndex - 1);
-		} else if (e.key === "Home") {
-			e.preventDefault();
-			targetIndex = 0;
-		} else if (e.key === "End") {
-			e.preventDefault();
-			targetIndex = totalSections - 1;
+	// Sync focus with activeSection when it changes (from scroll, arrow keys, etc.)
+	// Only moves focus if a dot is currently focused - doesn't interfere with scrolling
+	// Uses requestAnimationFrame to defer focus until after scroll updates complete
+	useEffect(() => {
+		if (hasFocusRef.current && dotRefs.current[activeSection]) {
+			requestAnimationFrame(() => {
+				if (hasFocusRef.current && dotRefs.current[activeSection]) {
+					dotRefs.current[activeSection]?.focus();
+				}
+			});
 		}
-
-		if (targetIndex !== null && targetIndex !== currentIndex) {
-			// Navigate to the section and move focus
-			onDotClick(targetIndex);
-			dotRefs.current[targetIndex]?.focus();
-		}
-	}, [totalSections, onDotClick]);
+	}, [activeSection]);
 
 	// Don't render at all until visible to prevent flash
 	if (!visible) {
@@ -231,7 +222,8 @@ export function ScrollDotIndicator({
 								}}
 								className={dotClass}
 								onClick={() => onDotClick(index)}
-								onKeyDown={(e) => handleKeyDown(e, index)}
+								onFocus={() => { hasFocusRef.current = true; }}
+								onBlur={() => { hasFocusRef.current = false; }}
 								aria-label={`Go to ${label}`}
 								aria-current={isActive ? "true" : undefined}
 								tabIndex={isActive ? 0 : -1}
