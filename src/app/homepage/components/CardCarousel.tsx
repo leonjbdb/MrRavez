@@ -7,56 +7,56 @@ import { useDebugSafe } from "@/components/debug";
 import type { AllSectionVisibility, SectionVisibility } from "../types";
 
 interface CardCarouselProps {
-    visibility: AllSectionVisibility;
-    isReady: boolean;
+	visibility: AllSectionVisibility;
+	isReady: boolean;
 }
 
 // Shared card wrapper styles
 const cardWrapperStyle: React.CSSProperties = {
-    position: "fixed",
-    top: "50%",
-    left: "50%",
-    zIndex: 10,
-    maxWidth: "480px",
-    width: "calc(100% - 32px)",
+	position: "fixed",
+	top: "50%",
+	left: "50%",
+	zIndex: 10,
+	maxWidth: "480px",
+	width: "calc(100% - 32px)",
 };
 
 /**
  * Wrapper component that applies GlassCard with animation props
  * Cards only handle content, this handles all animation/transition logic
  */
-function AnimatedCard({ 
-    children, 
-    visibility,
-    padding = "clamp(24px, 5vw, 40px)",
-    mobilePadding,
-    mobileBorderRadius,
-}: { 
-    children: React.ReactNode; 
-    visibility: SectionVisibility;
-    padding?: string;
-    mobilePadding?: string;
-    mobileBorderRadius?: number;
+function AnimatedCard({
+	children,
+	visibility,
+	padding = "clamp(24px, 5vw, 40px)",
+	mobilePadding,
+	mobileBorderRadius,
+}: {
+	children: React.ReactNode;
+	visibility: SectionVisibility;
+	padding?: string;
+	mobilePadding?: string;
+	mobileBorderRadius?: number;
 }) {
-    return (
-        <GlassCard
-            style={cardWrapperStyle}
-            padding={padding}
-            borderRadius={60}
-            mobileBorderRadius={mobileBorderRadius}
-            mobilePadding={mobilePadding}
-            opacity={visibility.opacity}
-            entryProgress={visibility.entryProgress}
-            exitProgress={visibility.exitProgress}
-            mobileOffset={visibility.mobileOffset}
-            mobileScale={visibility.mobileScale}
-            wheelRotateY={visibility.wheelRotateY}
-            wheelTranslateX={visibility.wheelTranslateX}
-            wheelTranslateZ={visibility.wheelTranslateZ}
-        >
-            {children}
-        </GlassCard>
-    );
+	return (
+		<GlassCard
+			style={cardWrapperStyle}
+			padding={padding}
+			borderRadius={60}
+			mobileBorderRadius={mobileBorderRadius}
+			mobilePadding={mobilePadding}
+			opacity={visibility.opacity}
+			entryProgress={visibility.entryProgress}
+			exitProgress={visibility.exitProgress}
+			mobileOffset={visibility.mobileOffset}
+			mobileScale={visibility.mobileScale}
+			wheelRotateY={visibility.wheelRotateY}
+			wheelTranslateX={visibility.wheelTranslateX}
+			wheelTranslateZ={visibility.wheelTranslateZ}
+		>
+			{children}
+		</GlassCard>
+	);
 }
 
 /**
@@ -67,86 +67,91 @@ function AnimatedCard({
  * card components only handle their content
  */
 export function CardCarousel({ visibility, isReady }: CardCarouselProps) {
-    // Track if cards have faded in (for initial appearance animation)
-    const [hasFadedIn, setHasFadedIn] = useState(false);
-    
-    // Check debug context for showCards flag
-    const debugContext = useDebugSafe();
-    const [localShowCards, setLocalShowCards] = useState(true);
-    
-    // Use context value if available, otherwise use local state
-    const showCards = debugContext?.state.showCards ?? localShowCards;
+	// Track if cards have faded in (for initial appearance animation)
+	const [hasFadedIn, setHasFadedIn] = useState(false);
 
-    useEffect(() => {
-        if (isReady && !hasFadedIn) {
-            // Double RAF + small timeout ensures browser has painted initial state
-            const timer = requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    setTimeout(() => {
-                        setHasFadedIn(true);
-                    }, 50);
-                });
-            });
-            return () => cancelAnimationFrame(timer);
-        }
-    }, [isReady, hasFadedIn]);
+	// Check debug context for showCards flag
+	const debugContext = useDebugSafe();
+	const [localShowCards, setLocalShowCards] = useState(true);
 
-    // Listen for debug option changes when context is not available
-    useEffect(() => {
-        const handleDebugOptionChange = (e: CustomEvent<{ key: string; value: boolean }>) => {
-            if (e.detail.key === "showCards") {
-                setLocalShowCards(e.detail.value);
-            }
-        };
+	// Use context value if available, otherwise use local state
+	const showCards = debugContext?.state.showCards ?? localShowCards;
 
-        window.addEventListener("debugOptionChanged", handleDebugOptionChange as EventListener);
-        return () => {
-            window.removeEventListener("debugOptionChanged", handleDebugOptionChange as EventListener);
-        };
-    }, []);
+	useEffect(() => {
+		if (isReady && !hasFadedIn) {
+			// Double RAF + small timeout ensures browser has painted initial state
+			const timer = requestAnimationFrame(() => {
+				requestAnimationFrame(() => {
+					setTimeout(() => {
+						setHasFadedIn(true);
+					}, 50);
+				});
+			});
+			return () => cancelAnimationFrame(timer);
+		}
+	}, [isReady, hasFadedIn]);
 
-    // Don't render if not ready or showCards is disabled
-    if (!isReady || !showCards) {
-        return null;
-    }
+	// Listen for debug option changes when context is not available
+	useEffect(() => {
+		const handleDebugOptionChange = (e: CustomEvent<{ key: string; value: boolean }>) => {
+			if (e.detail.key === "showCards") {
+				setLocalShowCards(e.detail.value);
+			}
+		};
 
-    const { profile, links, contact } = visibility;
+		window.addEventListener("debugOptionChanged", handleDebugOptionChange as EventListener);
+		return () => {
+			window.removeEventListener("debugOptionChanged", handleDebugOptionChange as EventListener);
+		};
+	}, []);
 
-    // Wrapper style for initial fade-in animation
-    const wrapperStyle: React.CSSProperties = {
-        position: 'relative',
-        zIndex: 10,
-        opacity: hasFadedIn ? 1 : 0,
-        transition: 'opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        willChange: 'opacity',
-    };
+	// Don't render if not ready or showCards is disabled
+	if (!isReady || !showCards) {
+		return null;
+	}
 
-    return (
-        <div style={wrapperStyle}>
-            {/* Profile card with scroll-based fade in/out */}
-            <AnimatedCard visibility={profile}>
-                <ProfileCard />
-            </AnimatedCard>
+	const { profile, links, contact } = visibility;
 
-            {/* Links card with scroll-based fade in/out */}
-            <AnimatedCard 
-                visibility={links}
-                padding="clamp(16px, 4vw, 30px)"
-                mobilePadding="20px"
-                mobileBorderRadius={40}
-            >
-                <LinksCard />
-            </AnimatedCard>
+	// Wrapper style for initial fade-in animation
+	const wrapperStyle: React.CSSProperties = {
+		position: 'relative',
+		zIndex: 10,
+		opacity: hasFadedIn ? 1 : 0,
+		transition: 'opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
+		willChange: 'opacity',
+	};
 
-            {/* Contact card with scroll-based fade in */}
-            <AnimatedCard 
-                visibility={contact}
-                padding="clamp(16px, 4vw, 30px)"
-                mobilePadding="20px"
-                mobileBorderRadius={40}
-            >
-                <ContactCard />
-            </AnimatedCard>
-        </div>
-    );
+	return (
+		<div style={wrapperStyle}>
+			{/* Profile card with scroll-based fade in/out */}
+			<AnimatedCard
+				visibility={profile}
+				padding="clamp(16px, 4vw, 30px)"
+				mobilePadding="20px"
+				mobileBorderRadius={40}
+			>
+				<ProfileCard />
+			</AnimatedCard>
+
+			{/* Links card with scroll-based fade in/out */}
+			<AnimatedCard
+				visibility={links}
+				padding="clamp(16px, 4vw, 30px)"
+				mobilePadding="20px"
+				mobileBorderRadius={40}
+			>
+				<LinksCard />
+			</AnimatedCard>
+
+			{/* Contact card with scroll-based fade in */}
+			<AnimatedCard
+				visibility={contact}
+				padding="clamp(16px, 4vw, 30px)"
+				mobilePadding="20px"
+				mobileBorderRadius={40}
+			>
+				<ContactCard />
+			</AnimatedCard>
+		</div>
+	);
 }

@@ -1,7 +1,14 @@
 /* Stable hover zone - doesn't change size when inner content scales */
 .profilePhotoHoverZone {
-    padding: 10px;
-    margin: -10px;
+    /* Use pseudo-element for expanded hover zone to avoid adding visible space */
+    position: relative;
+}
+
+.profilePhotoHoverZone::before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    pointer-events: none;
 }
 
 .profilePhotoWrapper {
