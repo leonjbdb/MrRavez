@@ -54,6 +54,8 @@ export interface AllSectionVisibility {
 export interface AnimationStagesState {
 	stage: number;
 	isReady: boolean;
+	wasSkippedFromStorage: boolean;
+	hasCheckedStorage: boolean;
 }
 
 export interface AnimationStagesOptions {
@@ -90,5 +92,3 @@ export interface TouchStartData {
 export interface ContactVisibilitySelector {
 	entryProgress: number;
 }
-
-
