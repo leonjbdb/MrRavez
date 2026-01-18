@@ -47,7 +47,7 @@ export const defaultDotConfig: DotConfig = {
 	// Spacing
 	gap: 12,
 	desktopLeft: 32,
-	mobileBottom: 32,
+	mobileBottom: 48,
 	labelOffset: 12,
 
 	// Label styling

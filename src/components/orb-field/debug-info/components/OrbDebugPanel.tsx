@@ -24,6 +24,8 @@ interface OrbDebugPanelProps {
 	selectedOrb?: Orb | null;
 	/** Current brush size for new orbs. */
 	orbSize?: number;
+	/** Whether spawn-on-click is enabled. */
+	enableSpawnOnClick?: boolean;
 	/** Callback when an orb is selected. */
 	onSelectOrb?: (id: string | null) => void;
 	/** Callback when an orb is deleted. */
@@ -39,7 +41,7 @@ interface OrbDebugPanelProps {
  * - Orb selector dropdown
  * - Real-time position and velocity display
  * - Delete button for selected orb
- * - Brush size slider for new orbs
+ * - Brush size slider for new orbs (when spawn-on-click is enabled)
  *
  * Only visible when debug mode is enabled.
  * Follows Open/Closed Principle: Uses shared glassStyles and debugMenuConfig.
@@ -50,6 +52,7 @@ export function OrbDebugPanel({
 	selectedOrbId,
 	selectedOrb: selectedOrbProp,
 	orbSize = DEFAULT_ORB_SPAWN_CONFIG.defaultSize,
+	enableSpawnOnClick = false,
 	onSelectOrb,
 	onDeleteOrb,
 	onSizeChange,
@@ -189,30 +192,35 @@ export function OrbDebugPanel({
 				</button>
 			</div>
 
-			{/* Brush Size Slider */}
-			<div style={{ display: 'flex', flexDirection: 'column', gap: spacing.gapSm }}>
-				<label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-					<span style={{ color: colors.textSecondary }}>Brush Size:</span>
-					<span style={{ color: colors.textPrimary }}>{orbSize}</span>
-				</label>
-				<input
-					type="range"
-					min={minSize}
-					max={maxSize}
-					step={1}
-					value={orbSize}
-					onChange={handleSizeChange}
-					style={{
-						width: '100%',
-						cursor: 'pointer',
-						accentColor: colors.maroonAccent,
-					}}
-				/>
-			</div>
+			{/* Brush Size Slider - Only show if spawn-on-click is enabled */}
+			{enableSpawnOnClick && (
+				<>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: spacing.gapSm }}>
+						<label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+							<span style={{ color: colors.textSecondary }}>Brush Size:</span>
+							<span style={{ color: colors.textPrimary }}>{orbSize}</span>
+						</label>
+						<input
+							type="range"
+							min={minSize}
+							max={maxSize}
+							step={1}
+							value={orbSize}
+							onChange={handleSizeChange}
+							aria-label={`Brush size: ${orbSize}`}
+							style={{
+								width: '100%',
+								cursor: 'pointer',
+								accentColor: colors.maroonAccent,
+							}}
+						/>
+					</div>
 
-			<div style={{ fontSize: typography.fontSizeXs, color: colors.textDisabled, fontStyle: 'italic', marginTop: spacing.gapSm }}>
-				* Click grid to place orb
-			</div>
+					<div style={{ fontSize: typography.fontSizeSm, color: colors.textMuted, fontStyle: 'italic', marginTop: spacing.gapSm }}>
+						* Click grid to place orb
+					</div>
+				</>
+			)}
 		</div>
 	);
 }

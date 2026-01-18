@@ -103,6 +103,14 @@ function DesktopMenu({
 	glassStyles: baseGlassStyles,
 }: MenuComponentProps) {
 	const { dimensions, zIndex, spacing, colors } = debugMenuConfig;
+	const [isHovered, setIsHovered] = useState(false);
+
+	const buttonGlassStyles = combineGlassStyles(
+		isHovered ? glassStyles.background.hover : glassStyles.background.default,
+		glassStyles.backdrop.blur,
+		isHovered ? glassStyles.border.hover : glassStyles.border.default,
+		glassStyles.shadow.card
+	);
 
 	return (
 		<div
@@ -117,7 +125,7 @@ function DesktopMenu({
 			<button
 				onClick={() => setIsOpen(!isOpen)}
 				style={{
-					...baseGlassStyles,
+					...buttonGlassStyles,
 					width: `${dimensions.buttonSize}px`,
 					height: `${dimensions.buttonSize}px`,
 					borderRadius: "50%",
@@ -125,20 +133,32 @@ function DesktopMenu({
 					alignItems: "center",
 					justifyContent: "center",
 					cursor: "pointer",
-					transition: debugMenuConfig.transitions.scale,
+					transition: `${debugMenuConfig.transitions.scale}, background 0.2s ease, border 0.2s ease`,
 				}}
 				onMouseEnter={(e) => {
+					setIsHovered(true);
 					e.currentTarget.style.transform = "scale(1.05)";
 				}}
 				onMouseLeave={(e) => {
+					setIsHovered(false);
 					e.currentTarget.style.transform = "scale(1)";
 				}}
-				aria-label={isOpen ? "Close debug menu" : "Open debug menu"}
+				aria-label={isOpen ? "Close debug options menu" : "Open debug options menu"}
 			>
 				{isOpen ? (
-					<X style={{ width: `${dimensions.iconSize}px`, height: `${dimensions.iconSize}px`, color: colors.iconDefault }} />
+					<X style={{
+						width: `${dimensions.iconSize}px`,
+						height: `${dimensions.iconSize}px`,
+						color: isHovered ? colors.iconHover : colors.iconDefault,
+						transition: "color 0.2s ease"
+					}} />
 				) : (
-					<Settings style={{ width: `${dimensions.iconSize}px`, height: `${dimensions.iconSize}px`, color: colors.iconDefault }} />
+					<Settings style={{
+						width: `${dimensions.iconSize}px`,
+						height: `${dimensions.iconSize}px`,
+						color: isHovered ? colors.iconHover : colors.iconDefault,
+						transition: "color 0.2s ease"
+					}} />
 				)}
 			</button>
 
@@ -199,6 +219,14 @@ function MobileMenu({
 	hoveredCell,
 }: MenuComponentProps & GlassDebugMenuProps) {
 	const { dimensions, zIndex, spacing, colors } = debugMenuConfig;
+	const [isHovered, setIsHovered] = useState(false);
+
+	const buttonGlassStyles = combineGlassStyles(
+		isHovered ? glassStyles.background.hover : glassStyles.background.default,
+		glassStyles.backdrop.blur,
+		isHovered ? glassStyles.border.hover : glassStyles.border.default,
+		glassStyles.shadow.card
+	);
 
 	return (
 		<>
@@ -206,7 +234,7 @@ function MobileMenu({
 			<button
 				onClick={() => setIsOpen(!isOpen)}
 				style={{
-					...baseGlassStyles,
+					...buttonGlassStyles,
 					position: "fixed",
 					top: `${spacing.buttonTop}px`,
 					left: `${spacing.buttonLeft}px`,
@@ -218,14 +246,26 @@ function MobileMenu({
 					alignItems: "center",
 					justifyContent: "center",
 					cursor: "pointer",
-					transition: debugMenuConfig.transitions.scale,
+					transition: `${debugMenuConfig.transitions.scale}, background 0.2s ease, border 0.2s ease`,
 				}}
-				aria-label={isOpen ? "Close debug menu" : "Open debug menu"}
+				onMouseEnter={() => setIsHovered(true)}
+				onMouseLeave={() => setIsHovered(false)}
+				aria-label={isOpen ? "Close debug options menu" : "Open debug options menu"}
 			>
 				{isOpen ? (
-					<X style={{ width: `${dimensions.iconSizeMobile}px`, height: `${dimensions.iconSizeMobile}px`, color: colors.iconDefault }} />
+					<X style={{
+						width: `${dimensions.iconSizeMobile}px`,
+						height: `${dimensions.iconSizeMobile}px`,
+						color: isHovered ? colors.iconHover : colors.iconDefault,
+						transition: "color 0.2s ease"
+					}} />
 				) : (
-					<ChevronRight style={{ width: `${dimensions.iconSizeMobile}px`, height: `${dimensions.iconSizeMobile}px`, color: colors.iconDefault }} />
+					<ChevronRight style={{
+						width: `${dimensions.iconSizeMobile}px`,
+						height: `${dimensions.iconSizeMobile}px`,
+						color: isHovered ? colors.iconHover : colors.iconDefault,
+						transition: "color 0.2s ease"
+					}} />
 				)}
 			</button>
 
@@ -291,6 +331,7 @@ function MobileMenu({
 					selectedOrbId={selectedOrbId}
 					selectedOrb={selectedOrb}
 					orbSize={orbSize}
+					enableSpawnOnClick={state.enableSpawnOnClick}
 					onSelectOrb={onSelectOrb}
 					onDeleteOrb={onDeleteOrb}
 					onSizeChange={onSizeChange}

@@ -16,6 +16,7 @@ export function OrbDebugSection({
 	selectedOrbId,
 	selectedOrb: selectedOrbProp,
 	orbSize = DEFAULT_ORB_SPAWN_CONFIG.defaultSize,
+	enableSpawnOnClick = false,
 	onSelectOrb,
 	onDeleteOrb,
 	onSizeChange,
@@ -112,30 +113,35 @@ export function OrbDebugSection({
 				</button>
 			</div>
 
-			{/* Brush Size Slider */}
-			<div style={{ display: 'flex', flexDirection: 'column', gap: spacing.gapSm, fontSize: typography.fontSizeMd }}>
-				<label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-					<span style={{ color: colors.textSecondary }}>Brush Size:</span>
-					<span style={{ color: colors.textPrimary }}>{orbSize}</span>
-				</label>
-				<input
-					type="range"
-					min={minSize}
-					max={maxSize}
-					step={1}
-					value={orbSize}
-					onChange={(e) => onSizeChange?.(parseInt(e.target.value, 10))}
-					style={{
-						width: '100%',
-						cursor: 'pointer',
-						accentColor: colors.maroonAccent,
-					}}
-				/>
-			</div>
+			{/* Brush Size Slider - Only show if spawn-on-click is enabled */}
+			{enableSpawnOnClick && (
+				<>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: spacing.gapSm, fontSize: typography.fontSizeMd }}>
+						<label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+							<span style={{ color: colors.textSecondary }}>Brush Size:</span>
+							<span style={{ color: colors.textPrimary }}>{orbSize}</span>
+						</label>
+						<input
+							type="range"
+							min={minSize}
+							max={maxSize}
+							step={1}
+							value={orbSize}
+							onChange={(e) => onSizeChange?.(parseInt(e.target.value, 10))}
+							aria-label={`Brush size: ${orbSize}`}
+							style={{
+								width: '100%',
+								cursor: 'pointer',
+								accentColor: colors.maroonAccent,
+							}}
+						/>
+					</div>
 
-			<div style={{ fontSize: typography.fontSizeXs, color: colors.textDisabled, fontStyle: 'italic', marginTop: spacing.gapLg }}>
-				* Tap grid to place orb
-			</div>
+					<div style={{ fontSize: typography.fontSizeSm, color: colors.textMuted, fontStyle: 'italic', marginTop: spacing.gapMd }}>
+						* Tap grid to place orb
+					</div>
+				</>
+			)}
 		</>
 	);
 }

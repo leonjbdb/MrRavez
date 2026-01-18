@@ -55,6 +55,10 @@ export function useDragInteraction(options: UseDragInteractionOptions): UseDragI
 	const lastPositionRef = useRef(0);
 	const velocityRef = useRef(0);
 	const dragStartRef = useRef<{ x: number } | null>(null);
+	// Track last update time for accurate velocity calculation
+	const lastTimeRef = useRef(0);
+	// Use exponential moving average for smoother velocity
+	const smoothedVelocityRef = useRef(0);
 
 	/**
 	 * Calculate normalized position (0-1) from pointer X coordinate
@@ -81,7 +85,10 @@ export function useDragInteraction(options: UseDragInteractionOptions): UseDragI
 		setIsDragging(true);
 		dragStartRef.current = { x: clientX };
 		lastPositionRef.current = calculatePosition(clientX);
+		// Reset all velocity tracking on new drag
 		velocityRef.current = 0;
+		smoothedVelocityRef.current = 0;
+		lastTimeRef.current = performance.now();
 		onDragStart?.();
 	}, [calculatePosition, onDragStart]);
 
@@ -92,10 +99,24 @@ export function useDragInteraction(options: UseDragInteractionOptions): UseDragI
 		if (!isDragging || !dragStartRef.current) return;
 
 		const newPosition = calculatePosition(clientX);
+		const now = performance.now();
+		const deltaTime = now - lastTimeRef.current;
 
-		// Calculate velocity for momentum (scale to per-second)
-		velocityRef.current = (newPosition - lastPositionRef.current) * 60;
+		// Only calculate velocity if we have a reasonable time delta
+		if (deltaTime > 0 && deltaTime < 100) {
+			const deltaPosition = newPosition - lastPositionRef.current;
+			// Calculate instantaneous velocity (position units per second)
+			const instantVelocity = (deltaPosition / deltaTime) * 1000;
+
+			// Use exponential moving average to smooth velocity
+			// This prevents erratic velocity from rapid small movements
+			const smoothingFactor = 0.3;
+			smoothedVelocityRef.current = smoothingFactor * instantVelocity + (1 - smoothingFactor) * smoothedVelocityRef.current;
+			velocityRef.current = smoothedVelocityRef.current;
+		}
+
 		lastPositionRef.current = newPosition;
+		lastTimeRef.current = now;
 
 		onDragMove?.(newPosition);
 	}, [isDragging, calculatePosition, onDragMove]);
@@ -109,7 +130,15 @@ export function useDragInteraction(options: UseDragInteractionOptions): UseDragI
 		setIsDragging(false);
 		dragStartRef.current = null;
 
-		onDragEnd?.(lastPositionRef.current, velocityRef.current);
+		// Clamp final velocity to reasonable bounds
+		const maxVelocity = 5;
+		const clampedVelocity = Math.max(-maxVelocity, Math.min(maxVelocity, velocityRef.current));
+
+		onDragEnd?.(lastPositionRef.current, clampedVelocity);
+
+		// Reset velocity refs after drag ends
+		velocityRef.current = 0;
+		smoothedVelocityRef.current = 0;
 	}, [isDragging, onDragEnd]);
 
 	// Mouse event handlers (document-level for reliable tracking)

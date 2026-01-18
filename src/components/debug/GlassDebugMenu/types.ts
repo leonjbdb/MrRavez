@@ -21,6 +21,8 @@ export interface OrbDebugProps {
 	selectedOrb?: Orb | null;
 	/** Current orb spawn size */
 	orbSize?: number;
+	/** Whether spawn-on-click is enabled */
+	enableSpawnOnClick?: boolean;
 	/** Callback when orb is selected */
 	onSelectOrb?: (id: string | null) => void;
 	/** Callback when orb is deleted */

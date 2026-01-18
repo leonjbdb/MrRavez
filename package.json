@@ -2,6 +2,10 @@
 	"name": "de-backer.no",
 	"version": "1.1.0",
 	"private": true,
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/leonjbdb/de-backer.no"
+	},
 	"scripts": {
 		"dev": "next dev",
 		"build": "next build && opennextjs-cloudflare build --skipBuild",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useMobileViewport } from "@/hooks/device";
 import { useInteraction3D, useDragInteraction } from "../../hooks/interaction";
 import { useSpringAnimation } from "../../hooks/animation";
@@ -30,6 +30,12 @@ interface GlassSliderProps {
  */
 export function GlassSlider({ opacity = 1, onSlideComplete, config: configOverride }: GlassSliderProps) {
 	const trackRef = useRef<HTMLDivElement>(null);
+
+	// Client-side only rendering to avoid hydration mismatch
+	const [mounted, setMounted] = useState(false);
+	useEffect(() => {
+		queueMicrotask(() => setMounted(true));
+	}, []);
 	const isMobile = useMobileViewport(sliderPositionDefaults.mobileBreakpoint);
 
 	// Merge configuration with defaults
@@ -44,7 +50,7 @@ export function GlassSlider({ opacity = 1, onSlideComplete, config: configOverri
 	});
 
 	// Spring animation for smooth snap
-	const { position, setPosition, setVelocity, snapTo, cancelAnimation } = useSpringAnimation({
+	const { position, setPosition, setVelocity, snapTo, cancelAnimation, isAnimating } = useSpringAnimation({
 		onSettle: (target: number) => {
 			const newDebugMode = target > 0.5;
 			setDebugMode(newDebugMode);
@@ -69,15 +75,15 @@ export function GlassSlider({ opacity = 1, onSlideComplete, config: configOverri
 	});
 
 	// Sync slider position when debug mode changes (e.g., from URL navigation)
-	// Only sync when not dragging to avoid fighting with user interaction
+	// Only sync when not dragging AND not animating to avoid fighting with user interaction
 	useEffect(() => {
-		if (isDragging) return;
+		if (isDragging || isAnimating) return;
 		const targetPosition = isDebugMode ? 1 : 0;
 		// Only update if position doesn't match debug mode state
 		if ((isDebugMode && position < 0.5) || (!isDebugMode && position > 0.5)) {
 			setPosition(targetPosition);
 		}
-	}, [isDebugMode, isDragging, position, setPosition]);
+	}, [isDebugMode, isDragging, isAnimating, position, setPosition]);
 
 	// Delayed visibility
 	const skipDelay = isDebugMode || wasActiveThisSession;
@@ -96,6 +102,10 @@ export function GlassSlider({ opacity = 1, onSlideComplete, config: configOverri
 		finalOpacity,
 	});
 
+	// Disable pointer events when slider is not visible
+	// Use mounted check to ensure consistent SSR/client rendering
+	const isInteractive = mounted && computedVisibility === "visible" && computedOpacity > 0;
+
 	return (
 		<div
 			onTouchStart={(e) => e.stopPropagation()}
@@ -108,6 +118,7 @@ export function GlassSlider({ opacity = 1, onSlideComplete, config: configOverri
 				transform: "translateX(-50%)",
 				opacity: computedOpacity,
 				visibility: computedVisibility,
+				pointerEvents: isInteractive ? "auto" : "none",
 				transition: keepVisible ? "none" : `opacity ${animationTimings.duration.normal} ease, visibility ${animationTimings.duration.normal}`,
 				willChange: "opacity",
 				zIndex: sliderPositionDefaults.zIndex,

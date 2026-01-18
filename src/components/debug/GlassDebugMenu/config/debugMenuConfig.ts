@@ -73,6 +73,7 @@ export const debugMenuConfig = {
 		textDisabled: "rgba(255, 255, 255, 0.4)",
 		textSuccess: "rgba(136, 255, 136, 0.9)",
 		iconDefault: "rgba(255, 255, 255, 0.8)",
+		iconHover: "var(--color-maroon)", // Maroon color on hover (fallback for SSR)
 		iconMuted: "rgba(255, 255, 255, 0.7)",
 		handleActive: "rgba(255, 255, 255, 0.9)",
 		handleInactive: "rgba(255, 255, 255, 0.6)",

@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useTheme } from "@/components/providers";
 import { ScrollDotIndicator } from "@/components/ui/ScrollDotIndicator";
+import { Attribution } from "@/components/ui/Attribution";
 import { GridView } from "@/components/orb-field";
 import { GlassSlider } from "@/components/glass";
 import { useDeviceOrientation } from "@/hooks";
@@ -139,7 +140,9 @@ export function HomePage({ initialSection }: HomePageProps) {
 							: 0
 				}
 			/>
+
+			{/* Attribution - Only visible on last card (contact) */}
+			<Attribution visible={activeSection === cardsConfig.length - 1} />
 		</>
 	);
 }
-

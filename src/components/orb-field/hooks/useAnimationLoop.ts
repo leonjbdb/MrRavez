@@ -79,14 +79,12 @@ export function useAnimationLoop({
 	const hasGridConfig = gridConfig !== null;
 
 	useEffect(() => {
-		console.log('[useAnimationLoop] MAIN EFFECT - visible:', visible, 'hasGridConfig:', hasGridConfig, 'hasStarted:', hasStartedRef.current);
 
 		// Don't restart if we've already started the animation
 		if (hasStartedRef.current) return;
 		if (!visible || !hasGridConfig) return;
 
 		hasStartedRef.current = true;
-		console.log('[useAnimationLoop] Starting animation loop');
 
 		animatorRef.current = new GridAnimator(
 			revealDurationRef.current,

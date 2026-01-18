@@ -59,7 +59,7 @@ export const paddingDefaults = {
  * Slider positioning defaults
  */
 export const sliderPositionDefaults = {
-	bottomDesktop: 48,
+	bottomDesktop: 64,
 	// Mobile: Position above the dot indicator (32px bottom + ~40px for dots + spacing)
 	bottomMobile: 80,
 	zIndex: 9999,

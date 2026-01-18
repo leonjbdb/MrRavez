@@ -21,15 +21,12 @@ import type { AnimationStagesState, AnimationStagesOptions } from "../types";
  * @param options.skipAnimation - If true, skip directly to stage 7 (ready state)
  */
 export function useAnimationStages(options?: AnimationStagesOptions): AnimationStagesState {
-	// Check if we should skip based on explicit option OR storage
+	// Check if we should skip based on explicit option
+	// NOTE: We only use the explicit skipAnimation option for initial state to avoid hydration mismatch.
+	// Storage-based skip is checked in useEffect after hydration.
 	const [shouldSkip, setShouldSkip] = useState(() => {
-		// Start with explicit skip option if provided
-		if (options?.skipAnimation) return true;
-		// Check storage on mount (SSR-safe with initial false)
-		if (typeof window !== "undefined") {
-			return introStorage.hasIntroBeenPlayed();
-		}
-		return false;
+		// Only use explicit skip option for initial state (SSR-safe)
+		return options?.skipAnimation ?? false;
 	});
 
 	const [stage, setStage] = useState(shouldSkip ? 7 : 0);

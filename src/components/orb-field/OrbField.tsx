@@ -15,7 +15,7 @@ import {
 } from './shared/config';
 import { DEFAULT_CONTINUOUS_SPAWN_CONFIG } from './orb/config';
 import { OrbDebugPanel, GridDebugPanel } from './debug-info';
-import { GlassDebugMenu } from '@/components/debug';
+import { GlassDebugMenu, DebugGitHubButton } from '@/components/debug';
 import {
 	useParallaxOffset,
 	useAnimationLoop,
@@ -275,6 +275,8 @@ export function OrbField({
 				hoveredCell={hoveredCell}
 			/>
 
+			<DebugGitHubButton />
+
 			{debugState.isDebugMode && gridConfig && viewportCells && !isMobile && (
 				<div className={styles.debugPanelContainer}>
 					<OrbDebugPanel
@@ -283,6 +285,7 @@ export function OrbField({
 						selectedOrbId={orbManager.selectedOrbId}
 						selectedOrb={orbManager.selectedOrbData}
 						orbSize={orbSize}
+						enableSpawnOnClick={debugState.enableSpawnOnClickRef.current}
 						onSelectOrb={orbManager.selectOrb}
 						onDeleteOrb={handleDeleteOrb}
 						onSizeChange={setOrbSize}

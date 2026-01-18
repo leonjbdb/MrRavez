@@ -67,29 +67,63 @@ export function useSpringAnimation(options: UseSpringAnimationOptions = {}): Use
 	const animationRef = useRef<number | null>(null);
 	const velocityRef = useRef(0);
 	const positionRef = useRef(initialPosition);
+	// Track current target to prevent stale closure issues with rapid calls
+	const targetRef = useRef<number | null>(null);
+	// Track animation generation to detect stale animations
+	const animationGenRef = useRef(0);
 
-	// Sync position ref when state changes
+	// Store callbacks in refs to avoid stale closures
+	const onSettleRef = useRef(onSettle);
 	useEffect(() => {
-		positionRef.current = position;
-	}, [position]);
+		onSettleRef.current = onSettle;
+	}, [onSettle]);
+
+	// Store config in ref to avoid stale closures
+	const configRef = useRef(config);
+	useEffect(() => {
+		configRef.current = config;
+	}, [config]);
 
 	const cancelAnimation = useCallback(() => {
-		if (animationRef.current) {
+		if (animationRef.current !== null) {
 			cancelAnimationFrame(animationRef.current);
 			animationRef.current = null;
 		}
+		targetRef.current = null;
 		setIsAnimating(false);
 	}, []);
 
 	const snapTo = useCallback((target: number) => {
-		cancelAnimation();
+		// Cancel any existing animation first
+		if (animationRef.current !== null) {
+			cancelAnimationFrame(animationRef.current);
+			animationRef.current = null;
+		}
+
+		// Increment generation to invalidate any pending animations
+		animationGenRef.current += 1;
+		const currentGen = animationGenRef.current;
+
+		targetRef.current = target;
 		setIsAnimating(true);
 
+		// Start from current position with clamped initial velocity
+		// Clamp velocity to prevent wild animations from rapid dragging
 		let currentPosition = positionRef.current;
-		let velocity = velocityRef.current;
+		const rawVelocity = velocityRef.current;
+		const maxVelocity = 10; // Reasonable max velocity
+		let velocity = Math.max(-maxVelocity, Math.min(maxVelocity, rawVelocity));
+
+		// Reset velocity ref to prevent accumulation
+		velocityRef.current = 0;
 
 		const animate = () => {
-			const { stiffness, damping, mass } = config;
+			// Check if this animation is still valid (not superseded by a newer one)
+			if (currentGen !== animationGenRef.current) {
+				return;
+			}
+
+			const { stiffness, damping, mass } = configRef.current;
 
 			// Spring force: F = -k * x (where x is displacement from target)
 			const displacement = currentPosition - target;
@@ -106,8 +140,10 @@ export function useSpringAnimation(options: UseSpringAnimationOptions = {}): Use
 			velocity += acceleration * dt;
 			currentPosition += velocity * dt;
 
+			// Clamp position to valid range to prevent overshooting beyond bounds
+			currentPosition = Math.max(0, Math.min(1, currentPosition));
+
 			positionRef.current = currentPosition;
-			velocityRef.current = velocity;
 			setPosition(currentPosition);
 
 			// Check if we've settled (very close to target with low velocity)
@@ -120,16 +156,17 @@ export function useSpringAnimation(options: UseSpringAnimationOptions = {}): Use
 				setPosition(target);
 				setIsAnimating(false);
 				animationRef.current = null;
+				targetRef.current = null;
 
-				// Notify completion
-				onSettle?.(target);
+				// Notify completion using ref to avoid stale closure
+				onSettleRef.current?.(target);
 			} else {
 				animationRef.current = requestAnimationFrame(animate);
 			}
 		};
 
 		animationRef.current = requestAnimationFrame(animate);
-	}, [config, cancelAnimation, onSettle]);
+	}, []);
 
 	const setPositionManual = useCallback((pos: number) => {
 		positionRef.current = pos;
@@ -142,8 +179,12 @@ export function useSpringAnimation(options: UseSpringAnimationOptions = {}): Use
 
 	// Cleanup on unmount
 	useEffect(() => {
-		return () => cancelAnimation();
-	}, [cancelAnimation]);
+		return () => {
+			if (animationRef.current !== null) {
+				cancelAnimationFrame(animationRef.current);
+			}
+		};
+	}, []);
 
 	return {
 		position,
