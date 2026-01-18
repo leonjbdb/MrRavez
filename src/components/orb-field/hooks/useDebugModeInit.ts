@@ -5,6 +5,7 @@
 // =============================================================================
 
 import { useState, useEffect } from 'react';
+import { debugStorage, DEBUG_EVENTS } from '@/lib/storage';
 
 /**
  * Return values from the debug mode init hook.
@@ -15,9 +16,10 @@ export interface UseDebugModeInitReturn {
 }
 
 /**
- * Initializes debug mode state from localStorage and listens for changes.
+ * Initializes debug mode state from debugStorage and listens for changes.
  * 
  * Single Responsibility: Debug mode initialization only.
+ * Follows Dependency Inversion Principle: Uses debugStorage abstraction.
  */
 export function useDebugModeInit(isDebugModeRef: React.RefObject<boolean>): UseDebugModeInitReturn {
 	const [isDebugMode, setIsDebugMode] = useState(false);
@@ -27,9 +29,9 @@ export function useDebugModeInit(isDebugModeRef: React.RefObject<boolean>): UseD
 			if (typeof window === 'undefined') {
 				return process.env.NEXT_PUBLIC_DEBUG_MODE === 'true';
 			}
-			const stored = localStorage.getItem('debug-mode-enabled');
-			if (stored !== null) {
-				return stored === 'true';
+			const stored = debugStorage.getEnabled();
+			if (stored) {
+				return true;
 			}
 			return process.env.NEXT_PUBLIC_DEBUG_MODE === 'true';
 		};
@@ -48,10 +50,10 @@ export function useDebugModeInit(isDebugModeRef: React.RefObject<boolean>): UseD
 			});
 		};
 
-		window.addEventListener('debugModeChanged', handleDebugModeChange as EventListener);
+		window.addEventListener(DEBUG_EVENTS.MODE_CHANGED, handleDebugModeChange as EventListener);
 
 		return () => {
-			window.removeEventListener('debugModeChanged', handleDebugModeChange as EventListener);
+			window.removeEventListener(DEBUG_EVENTS.MODE_CHANGED, handleDebugModeChange as EventListener);
 		};
 	}, [isDebugModeRef]);
 

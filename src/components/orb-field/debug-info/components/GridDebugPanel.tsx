@@ -5,6 +5,8 @@
 // =============================================================================
 
 import { type GridConfig, type ViewportCells } from '../../grid/types';
+import { glassStyles, combineGlassStyles } from '@/components/glass/styles';
+import { debugMenuConfig } from '@/components/debug/GlassDebugMenu/config/debugMenuConfig';
 
 /**
  * Props for the GridDebugPanel component.
@@ -32,6 +34,7 @@ interface GridDebugPanelProps {
  * - Currently hovered cell coordinates
  *
  * Only visible when debug mode is enabled.
+ * Follows Open/Closed Principle: Uses shared glassStyles and debugMenuConfig.
  */
 export function GridDebugPanel({
 	gridConfig,
@@ -40,80 +43,77 @@ export function GridDebugPanel({
 	onLayerChange,
 	hoveredCell,
 }: GridDebugPanelProps) {
-	const glassStyles: React.CSSProperties = {
-		background: "rgba(255, 255, 255, 0.08)",
-		backdropFilter: "blur(24px) saturate(120%)",
-		WebkitBackdropFilter: "blur(24px) saturate(120%)",
-		border: "1px solid rgba(255, 255, 255, 0.15)",
-		boxShadow: `
-			0 25px 50px rgba(0, 0, 0, 0.25),
-			0 10px 20px rgba(0, 0, 0, 0.15),
-			inset 0 1px 0 rgba(255, 255, 255, 0.2),
-			inset 0 -1px 0 rgba(0, 0, 0, 0.1)
-		`,
-	};
+	const { dimensions, spacing, typography, colors } = debugMenuConfig;
+
+	// Combine glass styles from central source
+	const panelStyles = combineGlassStyles(
+		glassStyles.background.default,
+		glassStyles.backdrop.blur,
+		glassStyles.border.default,
+		glassStyles.shadow.card
+	);
 
 	return (
 		<div
 			style={{
-				...glassStyles,
-				padding: 12,
-				borderRadius: 12,
-				color: 'rgba(255, 255, 255, 0.9)',
+				...panelStyles,
+				padding: spacing.padding,
+				borderRadius: dimensions.borderRadiusLg,
+				color: colors.textPrimary,
 				fontFamily: 'var(--font-mono), monospace',
-				fontSize: 11,
+				fontSize: typography.fontSizeMd,
 				minWidth: 160,
 			}}
 		>
 			<div
 				style={{
-					fontWeight: 600,
-					fontSize: 12,
-					color: 'rgba(255, 255, 255, 0.9)',
-					borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-					paddingBottom: 8,
-					marginBottom: 8,
+					fontWeight: typography.fontWeightBold,
+					fontSize: typography.fontSizeLg,
+					color: colors.textPrimary,
+					borderBottom: `1px solid ${colors.borderLight}`,
+					paddingBottom: spacing.gapLg,
+					marginBottom: spacing.gapLg,
 				}}
 			>
 				Grid Stats
 			</div>
 
-			<div style={{ marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
-				<span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Grid:</span>
+			<div style={{ marginBottom: spacing.gapMd, display: 'flex', justifyContent: 'space-between' }}>
+				<span style={{ color: colors.textSecondary }}>Grid:</span>
 				<span>{gridConfig.cellsX}×{gridConfig.cellsY}×{gridConfig.layers}</span>
 			</div>
 
-			<div style={{ marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
-				<span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Cell:</span>
+			<div style={{ marginBottom: spacing.gapMd, display: 'flex', justifyContent: 'space-between' }}>
+				<span style={{ color: colors.textSecondary }}>Cell:</span>
 				<span>{viewportCells.cellSizeXCm.toFixed(2)}×{viewportCells.cellSizeYCm.toFixed(2)}cm</span>
 			</div>
 
-			<div style={{ marginBottom: 8 }}>
-				<label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-					<span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Z:</span>
+			<div style={{ marginBottom: spacing.gapLg }}>
+				<label style={{ display: 'flex', alignItems: 'center', gap: spacing.gapLg }}>
+					<span style={{ color: colors.textSecondary }}>Z:</span>
 					<input
 						type="range"
 						min={0}
 						max={gridConfig.layers - 1}
 						value={currentLayer}
 						onChange={(e) => onLayerChange(parseInt(e.target.value))}
-						style={{ 
+						style={{
 							flex: 1,
 							cursor: 'pointer',
-							accentColor: 'rgba(78, 5, 6, 0.8)',
+							accentColor: colors.maroonAccent,
 						}}
 					/>
-					<span style={{ minWidth: 16, textAlign: 'right' }}>{currentLayer}</span>
+					<span style={{ minWidth: dimensions.layerInputMinWidth, textAlign: 'right' }}>{currentLayer}</span>
 				</label>
 			</div>
 
 			{hoveredCell && (
 				<div
 					style={{
-						color: 'rgba(136, 255, 136, 0.9)',
-						fontSize: 10,
-						borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-						paddingTop: 8,
+						color: colors.textSuccess,
+						fontSize: typography.fontSizeSm,
+						borderTop: `1px solid ${colors.borderLight}`,
+						paddingTop: spacing.gapLg,
 					}}
 				>
 					Cell ({hoveredCell.x}, {hoveredCell.y})

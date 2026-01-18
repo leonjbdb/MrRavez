@@ -12,7 +12,7 @@ export const siteConfig = {
 
 	links: [
 		{
-			label: "UiO Profile",
+			label: "University of Oslo",
 			href: "https://people.uio.no/leon",
 			icon: "uio",
 		},

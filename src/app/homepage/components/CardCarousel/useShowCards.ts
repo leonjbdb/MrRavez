@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useDebugSafe } from "@/components/debug";
+import { DEBUG_EVENTS } from "@/lib/storage";
 
 export interface UseShowCardsState {
 	showCards: boolean;
@@ -29,9 +30,9 @@ export function useShowCards(): UseShowCardsState {
 			}
 		};
 
-		window.addEventListener("debugOptionChanged", handleDebugOptionChange as EventListener);
+		window.addEventListener(DEBUG_EVENTS.OPTION_CHANGED, handleDebugOptionChange as EventListener);
 		return () => {
-			window.removeEventListener("debugOptionChanged", handleDebugOptionChange as EventListener);
+			window.removeEventListener(DEBUG_EVENTS.OPTION_CHANGED, handleDebugOptionChange as EventListener);
 		};
 	}, []);
 

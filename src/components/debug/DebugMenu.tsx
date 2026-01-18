@@ -12,6 +12,7 @@ import {
 	SheetTrigger,
 } from "@/components/ui/sheet";
 import { useDebugSafe, type DebugState } from "./DebugContext";
+import { debugMenuConfig } from "./GlassDebugMenu/config/debugMenuConfig";
 
 interface ToggleItem {
 	key: keyof Omit<DebugState, "enabled">;
@@ -171,9 +172,11 @@ export function DebugMenu() {
 	const [mounted, setMounted] = useState(false);
 
 	useEffect(() => {
-		setMounted(true);
+		// Defer setMounted to avoid cascading renders
+		requestAnimationFrame(() => setMounted(true));
+
 		const checkMobile = () => {
-			setIsMobile(window.innerWidth < 768);
+			setIsMobile(window.innerWidth < debugMenuConfig.breakpoint);
 		};
 		checkMobile();
 		window.addEventListener("resize", checkMobile);

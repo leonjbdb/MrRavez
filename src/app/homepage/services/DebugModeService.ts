@@ -1,9 +1,10 @@
 /**
  * Debug mode detection service
  * Abstracts debug mode checking logic from components
+ * Follows Dependency Inversion Principle: Uses debugStorage abstraction
  */
 
-const DEBUG_MODE_KEY = "debug-mode-enabled";
+import { debugStorage } from "@/lib/storage";
 
 export interface DebugModeService {
 	/**
@@ -24,7 +25,7 @@ const SECTION_PATHS = ["/about", "/links", "/contact"] as const;
 const DEBUG_SECTION_PATHS = ["/debug/about", "/debug/links", "/debug/contact"] as const;
 
 /**
- * Default implementation using localStorage and URL pathname
+ * Default implementation using debugStorage and URL pathname
  */
 class DefaultDebugModeService implements DebugModeService {
 	isDebugModeActive(): boolean {
@@ -35,9 +36,8 @@ class DefaultDebugModeService implements DebugModeService {
 			return true;
 		}
 
-		// Check localStorage
-		const stored = localStorage.getItem(DEBUG_MODE_KEY);
-		return stored === "true";
+		// Check debugStorage abstraction
+		return debugStorage.getEnabled();
 	}
 
 	getSectionPath(sectionIndex: number, isDebugMode: boolean): string {

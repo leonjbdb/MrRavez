@@ -30,6 +30,20 @@ export interface OrbDebugProps {
 }
 
 /**
+ * Position information for a hovered cell
+ */
+export interface CellPosition {
+	/** Cell x coordinate */
+	x: number;
+	/** Cell y coordinate */
+	y: number;
+	/** World x coordinate in cm */
+	worldX: number;
+	/** World y coordinate in cm */
+	worldY: number;
+}
+
+/**
  * Props for grid debugging functionality
  */
 export interface GridDebugProps {
@@ -42,13 +56,13 @@ export interface GridDebugProps {
 	/** Callback when layer changes */
 	onLayerChange?: (layer: number) => void;
 	/** Currently hovered cell */
-	hoveredCell?: { x: number; y: number; worldX: number; worldY: number } | null;
+	hoveredCell?: CellPosition | null;
 }
 
 /**
- * Combined props for GlassDebugMenu
+ * Combined props for GlassDebugMenu (union of orb and grid debug props)
  */
-export interface GlassDebugMenuProps extends OrbDebugProps, GridDebugProps { }
+export type GlassDebugMenuProps = OrbDebugProps & GridDebugProps;
 
 /**
  * Toggle item configuration

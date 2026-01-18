@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { debugModeService } from "../../services";
+import { DEBUG_EVENTS } from "@/lib/storage";
 
 export interface UseUrlSyncOptions {
 	enabled: boolean;
@@ -29,7 +30,7 @@ export function useUrlSync({ enabled, hasPassedGreeting, activeSection }: UseUrl
 			setIsDebugMode(e.detail.enabled);
 		};
 
-		window.addEventListener("debugModeChanged", handleDebugModeChange as EventListener);
+		window.addEventListener(DEBUG_EVENTS.MODE_CHANGED, handleDebugModeChange as EventListener);
 
 		// Check initial state on mount
 		queueMicrotask(() => {
@@ -37,7 +38,7 @@ export function useUrlSync({ enabled, hasPassedGreeting, activeSection }: UseUrl
 		});
 
 		return () => {
-			window.removeEventListener("debugModeChanged", handleDebugModeChange as EventListener);
+			window.removeEventListener(DEBUG_EVENTS.MODE_CHANGED, handleDebugModeChange as EventListener);
 		};
 	}, []);
 

@@ -4,7 +4,20 @@
  * not on concrete localStorage implementation
  */
 
-const DEBUG_MODE_KEY = 'debug-mode-enabled';
+/**
+ * Storage key for debug mode persistence
+ * Exported to ensure single source of truth across the application
+ */
+export const DEBUG_MODE_KEY = 'debug-mode-enabled';
+
+/**
+ * Custom event names for debug system
+ * Centralized to prevent typos and ensure consistency
+ */
+export const DEBUG_EVENTS = {
+	MODE_CHANGED: 'debugModeChanged',
+	OPTION_CHANGED: 'debugOptionChanged',
+} as const;
 
 export interface DebugStorageAdapter {
 	getEnabled(): boolean;
@@ -31,7 +44,7 @@ class LocalStorageDebugAdapter implements DebugStorageAdapter {
 
 		// Dispatch custom event for cross-component communication
 		window.dispatchEvent(
-			new CustomEvent('debugModeChanged', {
+			new CustomEvent(DEBUG_EVENTS.MODE_CHANGED, {
 				detail: { enabled }
 			})
 		);

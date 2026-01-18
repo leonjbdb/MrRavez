@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useDebugSafe, type DebugState } from "../../DebugContext";
-import { debugStorage } from "@/lib/storage";
+import { debugStorage, DEBUG_EVENTS } from "@/lib/storage";
 
 /**
  * State management hook for GlassDebugMenu
@@ -45,7 +45,7 @@ export function useDebugMenuState() {
 				// Defer event dispatch to avoid setState during render
 				queueMicrotask(() => {
 					window.dispatchEvent(
-						new CustomEvent("debugOptionChanged", {
+						new CustomEvent(DEBUG_EVENTS.OPTION_CHANGED, {
 							detail: { key, value: newState[key] }
 						})
 					);

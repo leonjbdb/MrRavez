@@ -5,6 +5,7 @@
 // =============================================================================
 
 import { useEffect } from 'react';
+import { DEBUG_EVENTS } from '@/lib/storage';
 
 /**
  * Parameters for event sync hook.
@@ -94,9 +95,9 @@ export function useDebugEventSync(params: UseDebugEventSyncParams): void {
 			}
 		};
 
-		window.addEventListener("debugOptionChanged", handleDebugOptionChange as EventListener);
+		window.addEventListener(DEBUG_EVENTS.OPTION_CHANGED, handleDebugOptionChange as EventListener);
 		return () => {
-			window.removeEventListener("debugOptionChanged", handleDebugOptionChange as EventListener);
+			window.removeEventListener(DEBUG_EVENTS.OPTION_CHANGED, handleDebugOptionChange as EventListener);
 		};
 	}, [
 		showGridRef,

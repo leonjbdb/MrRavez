@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useDebugSafe } from "./DebugContext";
+import { debugStorage } from "@/lib/storage";
 
 // Map section indices to card slugs
 const SECTION_TO_CARD = ["about", "links", "contact"] as const;
@@ -12,9 +13,6 @@ const CARD_TO_SECTION: Record<string, number> = {
 	links: 1,
 	contact: 2,
 };
-
-// Debug mode storage key
-const DEBUG_MODE_KEY = "debug-mode-enabled";
 
 /**
  * Hook to sync debug mode with URL bidirectionally.
@@ -29,6 +27,8 @@ const DEBUG_MODE_KEY = "debug-mode-enabled";
  * This hook should be called from a component that has access to:
  * - activeSection (current card index)
  * - hasPassedGreeting (whether greeting animation completed)
+ * 
+ * Follows Dependency Inversion Principle: Uses debugStorage abstraction.
  */
 export function useDebugUrlSync(
 	activeSection: number,
@@ -46,13 +46,9 @@ export function useDebugUrlSync(
 
 		if (isDebugRoute && debug && !debug.state.enabled) {
 			// User navigated to debug URL - enable debug mode
+			// debugStorage.setEnabled() handles both localStorage and event dispatch
 			debug.setEnabled(true);
-			localStorage.setItem(DEBUG_MODE_KEY, "true");
-
-			// Dispatch event to notify other components
-			window.dispatchEvent(
-				new CustomEvent("debugModeChanged", { detail: { enabled: true } })
-			);
+			debugStorage.setEnabled(true);
 		}
 	}, [debug]);
 
