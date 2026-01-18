@@ -64,8 +64,8 @@ export const debugMenuConfig = {
 		slider: "left 0.3s ease, background 0.3s ease",
 	},
 	colors: {
-		maroon: "rgba(78, 5, 6, 0.4)", // Active state
-		maroonAccent: "rgba(78, 5, 6, 0.8)", // Slider accent
+		maroon: "#526379", // Active state
+		maroonAccent: "#526379", // Slider accent
 		maroonButton: "rgba(170, 17, 17, 0.6)", // Delete button
 		textPrimary: "rgba(255, 255, 255, 0.9)",
 		textSecondary: "rgba(255, 255, 255, 0.7)",

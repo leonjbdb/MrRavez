@@ -70,7 +70,7 @@
 }
 
 .dot:active {
-	background-color: var(--color-maroon, #4E0506) !important;
+	background-color: var(--color-maroon, #200131) !important;
 }
 
 .dot.active {

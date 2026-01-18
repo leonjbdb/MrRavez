@@ -136,16 +136,16 @@ export interface OrbVisualConfig {
 }
 
 /**
- * Default visual configuration for maroon orbs with depth-based blur and glow.
+ * Default visual configuration for cyan orbs with depth-based blur and glow.
  *
- * The color is a deep blood red/maroon that matches the reference image.
+ * The color is a bright cyan/blue (#1DC2FE).
  * Depth effects create a bokeh-like blur for orbs further from the viewer.
  */
 export const DEFAULT_ORB_VISUAL_CONFIG: OrbVisualConfig = {
-	// Deep blood red/maroon color (HSL: ~5°, 85%, 15%)
-	baseHue: 5,
-	baseSaturation: 90,
-	baseLightness: 15,
+	// Bright cyan color (#1DC2FE = HSL: 198°, 99%, 55%)
+	baseHue: 198,
+	baseSaturation: 99,
+	baseLightness: 55,
 
 	// Glow settings - large, soft glowing effect
 	glowIntensity: 1.0,

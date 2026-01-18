@@ -38,7 +38,7 @@ export interface GreetingConfig {
 export const defaultGreetingConfig: GreetingConfig = {
 	// Text content
 	hiText: "Hi!",
-	welcomeText: "Welcome to my little corner of the internet...",
+	welcomeText: "Welcome to MrRavez, a hub for livestreams, videos, and photography",
 
 	// Font sizes
 	hiFontSize: "clamp(5rem, 20vw, 14rem)",

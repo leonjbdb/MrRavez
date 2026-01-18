@@ -52,7 +52,7 @@
 }
 
 .link.isHovered .content {
-    color: var(--color-maroon, #4E0506);
+    color: var(--color-maroon, #200131);
 }
 
 .arrow {

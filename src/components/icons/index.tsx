@@ -1,18 +1,18 @@
 import { ReactNode } from "react";
 import { EmailIcon } from "./EmailIcon";
+import { TwitchIcon } from "./TwitchIcon";
+import { YouTubeIcon } from "./YouTubeIcon";
 import { GitHubIcon } from "./GitHubIcon";
-import { LinkedInIcon } from "./LinkedInIcon";
-import { UiOIcon } from "./UiOIcon";
 
 export { EmailIcon } from "./EmailIcon";
+export { TwitchIcon } from "./TwitchIcon";
+export { YouTubeIcon } from "./YouTubeIcon";
 export { GitHubIcon } from "./GitHubIcon";
-export { LinkedInIcon } from "./LinkedInIcon";
-export { UiOIcon } from "./UiOIcon";
 
 /**
  * Icon type identifiers used in site configuration
  */
-export type IconType = "email" | "github" | "linkedin" | "uio";
+export type IconType = "email" | "twitch" | "youtube" | "github";
 
 /**
  * Get icon component by type identifier
@@ -23,12 +23,12 @@ export function getIconByType(iconType: string): ReactNode {
 	switch (iconType) {
 		case "email":
 			return <EmailIcon />;
+		case "twitch":
+			return <TwitchIcon />;
+		case "youtube":
+			return <YouTubeIcon />;
 		case "github":
 			return <GitHubIcon />;
-		case "linkedin":
-			return <LinkedInIcon />;
-		case "uio":
-			return <UiOIcon />;
 		default:
 			return null;
 	}

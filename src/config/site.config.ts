@@ -4,38 +4,25 @@
 
 export const siteConfig = {
 	identity: {
-		name: "Leon Joachim Buverud De Backer",
-		role: "Head Engineer",
-		division: "AV and IoT",
-		organization: "University of Oslo",
+		name: "MrRavez",
+		role: "Content Creator & Photographer"
 	},
 
 	links: [
 		{
-			label: "University of Oslo",
-			href: "https://people.uio.no/leon",
-			icon: "uio",
+			label: "Twitch",
+			href: "https://www.twitch.tv/mrravez",
+			icon: "twitch",
 		},
 		{
-			label: "LinkedIn",
-			href: "https://www.linkedin.com/in/leonjbdb/",
-			icon: "linkedin",
-		},
-		{
-			label: "GitHub (Work)",
-			href: "https://github.com/leon-uio",
-			icon: "github",
-		},
-		{
-			label: "GitHub (Personal)",
-			href: "https://github.com/leonjbdb",
-			icon: "github",
+			label: "YouTube",
+			href: "https://www.youtube.com/@MrRavez69",
+			icon: "youtube",
 		}
 	],
 
 	contact: {
-		email_personal: "contact@de-backer.no",
-		email_work: "l.j.b.de.backer@usit.uio.no",
+		email_personal: "mrravez.ttv@gmail.com"
 	},
 } as const;
 

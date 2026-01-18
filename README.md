@@ -1,6 +1,6 @@
-# de-backer.no
+# MrRavez
 
-Personal portfolio website for **Leon Joachim Buverud De Backer**
+Personal portfolio website for **MrRavez**
 
 Built with Next.js, TypeScript, and modern web technologies, featuring an interactive physics-based orb field visualisation and glassmorphism UI components.
 

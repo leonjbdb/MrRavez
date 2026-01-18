@@ -24,7 +24,10 @@ export function HoverablePhoto({ src, alt, size = DEFAULT_PHOTO_SIZE, priority }
 
 	return (
 		<div className={styles.wrapper} {...interactionProps}>
-			<div className={`${styles.photo} ${isActive ? styles.active : ''}`}>
+			<div 
+				className={`${styles.photo} ${isActive ? styles.active : ''}`}
+				style={{ width: `${size}px`, height: `${size}px` }}
+			>
 				<div className={styles.clipper}>
 					<Image
 						src={src}

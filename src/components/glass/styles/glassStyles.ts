@@ -96,7 +96,7 @@ export const topEdgeHighlight = {
  */
 export const handleColors = {
 	arrowDefault: 'var(--color-white, #ffffff)',
-	arrowActive: 'var(--color-maroon, #4E0506)',
+	arrowActive: 'var(--color-maroon, #200131)',
 } as const;
 
 /**

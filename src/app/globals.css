@@ -35,8 +35,8 @@
   --text-primary: var(--neutral-100);
   --text-secondary: var(--neutral-400);
   --text-muted: var(--neutral-500);
-  --accent: var(--wine-500);
-  --accent-hover: var(--wine-400);
+  --accent: #200131;
+  --accent-hover: #200131;
 
   /* Sizing */
   --radius-md: 12px;
@@ -44,7 +44,7 @@
   --radius-xl: 24px;
 
   /* Custom Colors */
-  --color-maroon: #4E0506;
+  --color-maroon: #200131;
   --color-white: #ffffff;
   --color-shadow: rgba(0, 0, 0, 0.5);
 }
@@ -123,33 +123,6 @@ a {
   opacity: 0.4;
   animation: orb-float 30s ease-in-out infinite;
   will-change: transform;
-}
-
-.background-orb--1 {
-  width: 60vmax;
-  height: 60vmax;
-  background: radial-gradient(circle, var(--wine-700) 0%, var(--wine-950) 60%, transparent 100%);
-  top: -25%;
-  left: -15%;
-}
-
-.background-orb--2 {
-  width: 45vmax;
-  height: 45vmax;
-  background: radial-gradient(circle, var(--wine-800) 0%, transparent 70%);
-  bottom: -20%;
-  right: -10%;
-  animation-delay: -10s;
-}
-
-.background-orb--3 {
-  width: 35vmax;
-  height: 35vmax;
-  background: radial-gradient(circle, var(--wine-600) 0%, transparent 60%);
-  top: 45%;
-  left: 55%;
-  opacity: 0.25;
-  animation-delay: -20s;
 }
 
 @keyframes orb-float {
@@ -661,7 +634,7 @@ button:focus-visible {
 
 .glass-button-context:focus-visible .glass-focus-ring {
   border: 2px solid var(--accent);
-  box-shadow: 0 0 0 4px rgba(162, 68, 86, 0.15);
+  box-shadow: 0 0 0 4px rgba(32, 1, 49, 0.15);
 }
 
 ::selection {

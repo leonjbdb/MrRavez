@@ -1,10 +1,10 @@
 {
-	"name": "de-backer.no",
+	"name": "MrRavez",
 	"version": "1.1.0",
 	"private": true,
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/leonjbdb/de-backer.no"
+		"url": "https://github.com/leonjbdb/MrRavez"
 	},
 	"scripts": {
 		"dev": "next dev",

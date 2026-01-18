@@ -13,21 +13,19 @@ export function AboutCard() {
 	return (
 		<CardTemplate title="About">
 			<HoverablePhoto
-				src="/leon.webp"
+				src="/MrRavez.webp"
 				alt={siteConfig.identity.name}
+				size={180}
 				priority
 			/>
 
 			<h2 className={styles.name}>
-				Leon Joachim Buverud <span className={styles.noBreak}>De Backer</span>
+				{siteConfig.identity.name}
 			</h2>
 
 			<div className={styles.info}>
 				<p className={styles.role}>
-					{siteConfig.identity.role} — {siteConfig.identity.division}
-				</p>
-				<p className={styles.org}>
-					{siteConfig.identity.organization}
+					{siteConfig.identity.role}
 				</p>
 			</div>
 		</CardTemplate>
