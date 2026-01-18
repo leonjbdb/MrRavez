@@ -40,6 +40,8 @@ export interface PhysicsContext {
 	enableOrbSpawningRef: React.RefObject<boolean>;
 	/** Ref for enable orb despawning setting. */
 	enableOrbDespawningRef: React.RefObject<boolean>;
+	/** Ref to current scroll/parallax offset for coordinate adjustment. */
+	currentScrollOffsetRef: React.RefObject<{ x: number; y: number }>;
 }
 
 /**

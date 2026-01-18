@@ -64,6 +64,7 @@ export function usePhysicsLoop(options: UsePhysicsLoopOptions): UsePhysicsLoopRe
 			disableAvoidanceRef,
 			enableOrbSpawningRef,
 			enableOrbDespawningRef,
+			currentScrollOffsetRef,
 		} = context;
 
 		if (easedProgress >= 1 && !pausePhysicsRef.current) {
@@ -72,8 +73,9 @@ export function usePhysicsLoop(options: UsePhysicsLoopOptions): UsePhysicsLoopRe
 			// Phase 1: Mark all orbs at current positions
 			PhaseGridMarking.markInitial(currentOrbs, grid, vpc);
 
-			// Phase 2: Apply mouse repulsion
-			PhaseMouseRepulsion.execute(currentOrbs, mousePosRef.current, deltaTime, disableAvoidanceRef.current);
+			// Phase 2: Apply mouse repulsion (adjust mouse position for parallax offset)
+			const scrollOffset = currentScrollOffsetRef.current;
+			PhaseMouseRepulsion.execute(currentOrbs, mousePosRef.current, deltaTime, disableAvoidanceRef.current, scrollOffset);
 
 			// Phase 3: Apply speed limits
 			PhaseSpeedLimit.execute(currentOrbs, deltaTime);

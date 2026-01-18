@@ -163,6 +163,7 @@ export function useRenderLoop(
 			disableAvoidanceRef,
 			enableOrbSpawningRef,
 			enableOrbDespawningRef,
+			currentScrollOffsetRef,
 		});
 
 		// Sync canvas dimensions

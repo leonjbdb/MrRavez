@@ -63,22 +63,35 @@ export class OrbAvoidance {
 
 				// Handle zero-distance case with random separation direction
 				let dist: number;
-				let nx: number, ny: number, nz: number;
+				let nxCell: number, nyCell: number, nzCell: number;
 
 				if (distSq < 0.001) {
 					// Generate random separation direction to unstick orbs
 					const randomAngle = Math.random() * Math.PI * 2;
 					const randomPhi = (Math.random() - 0.5) * Math.PI;
-					nx = Math.cos(randomAngle) * Math.cos(randomPhi);
-					ny = Math.sin(randomAngle) * Math.cos(randomPhi);
-					nz = Math.sin(randomPhi);
+					nxCell = Math.cos(randomAngle) * Math.cos(randomPhi);
+					nyCell = Math.sin(randomAngle) * Math.cos(randomPhi);
+					nzCell = Math.sin(randomPhi);
 					dist = 0.001;
 				} else {
 					dist = Math.sqrt(distSq);
-					nx = dx / dist;
-					ny = dy / dist;
-					nz = dz / dist;
+					nxCell = dx / dist;
+					nyCell = dy / dist;
+					nzCell = dz / dist;
 				}
+
+				// Convert direction from cell space back to pixel space
+				// Cell space may be non-square, so we need to scale the direction vector
+				const nxPx = nxCell * vpc.cellSizeXPx;
+				const nyPx = nyCell * vpc.cellSizeYPx;
+				// Z is in layers, keep it as-is for now (vz is in layers/s)
+				const nzPx = nzCell;
+				const lenPx = Math.sqrt(nxPx * nxPx + nyPx * nyPx + nzPx * nzPx);
+
+				// Normalized direction in pixel space
+				const nx = lenPx > 0.001 ? nxPx / lenPx : 0;
+				const ny = lenPx > 0.001 ? nyPx / lenPx : 0;
+				const nz = lenPx > 0.001 ? nzPx / lenPx : 0;
 
 				// Apply avoidance repulsion when zones overlap
 				// Continue applying even during body overlap to provide continuous outward pressure

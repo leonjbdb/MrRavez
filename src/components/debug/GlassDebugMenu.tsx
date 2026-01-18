@@ -71,14 +71,12 @@ interface GlassDebugMenuProps {
  */
 function ToggleSlider({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
 	const trackRef = useRef<HTMLDivElement>(null);
-	const [position, setPosition] = useState(checked ? 1 : 0);
 	const [isDragging, setIsDragging] = useState(false);
+	const [dragPosition, setDragPosition] = useState<number | null>(null);
 	const dragStartRef = useRef<{ x: number; startPosition: number } | null>(null);
 
-	// Sync position with checked state
-	useEffect(() => {
-		setPosition(checked ? 1 : 0);
-	}, [checked]);
+	// Use drag position during drag, otherwise derive from checked
+	const position = isDragging && dragPosition !== null ? dragPosition : (checked ? 1 : 0);
 
 	const calculatePosition = useCallback((clientX: number): number => {
 		if (!trackRef.current) return position;
@@ -99,7 +97,7 @@ function ToggleSlider({ checked, onToggle }: { checked: boolean; onToggle: () =>
 	const handleDragMove = useCallback((clientX: number) => {
 		if (!isDragging || !dragStartRef.current) return;
 		const newPosition = calculatePosition(clientX);
-		setPosition(newPosition);
+		setDragPosition(newPosition);
 	}, [isDragging, calculatePosition]);
 
 	const handleDragEnd = useCallback(() => {
@@ -107,7 +105,7 @@ function ToggleSlider({ checked, onToggle }: { checked: boolean; onToggle: () =>
 		setIsDragging(false);
 		dragStartRef.current = null;
 		const shouldBeOn = position > 0.5;
-		setPosition(shouldBeOn ? 1 : 0);
+		setDragPosition(null);
 		if (shouldBeOn !== checked) {
 			onToggle();
 		}
@@ -271,29 +269,42 @@ export function GlassDebugMenu({
 }: GlassDebugMenuProps) {
 	const debugContext = useDebugSafe();
 	const [isOpen, setIsOpen] = useState(false);
-	const [mounted, setMounted] = useState(false);
-	const [isDebugEnabled, setIsDebugEnabled] = useState(false);
+	// Initialize mounted to true since we're always client-side
+	const [mounted] = useState(true);
+	const [isDebugEnabled, setIsDebugEnabled] = useState(() => {
+		// Initialize from localStorage on mount
+		if (typeof window !== 'undefined') {
+			return localStorage.getItem("debug-mode-enabled") === "true";
+		}
+		return false;
+	});
 	const [localState, setLocalState] = useState<Omit<DebugState, "enabled">>(defaultState);
-	const [isMobile, setIsMobile] = useState(false);
+	const [isMobile, setIsMobile] = useState(() => {
+		// Initialize from window width
+		if (typeof window !== 'undefined') {
+			return window.innerWidth < 768;
+		}
+		return false;
+	});
+
+	// Track when the orb selector dropdown is open
+	// When open, we freeze the orbs list to prevent it from updating and making selection impossible
+	const [isOrbSelectorOpen, setIsOrbSelectorOpen] = useState(false);
+	const [frozenOrbs, setFrozenOrbs] = useState<Orb[]>([]);
+
+	// Use frozen orbs list when dropdown is open, otherwise use real-time orbs
+	const displayOrbs = isOrbSelectorOpen ? frozenOrbs : orbs;
 
 	// Use real-time prop if available, otherwise find in list
 	const selectedOrb = selectedOrbProp || orbs.find((o) => o.id === selectedOrbId);
 	const { minSize, maxSize } = DEFAULT_ORB_SPAWN_CONFIG;
 
 	useEffect(() => {
-		setMounted(true);
-
 		// Check if mobile
 		const checkMobile = () => {
 			setIsMobile(window.innerWidth < 768);
 		};
-		checkMobile();
 		window.addEventListener("resize", checkMobile);
-
-		if (typeof window !== 'undefined') {
-			const stored = localStorage.getItem("debug-mode-enabled");
-			setIsDebugEnabled(stored === "true");
-		}
 
 		const handleDebugModeChange = (e: CustomEvent) => {
 			setIsDebugEnabled(e.detail.enabled);
@@ -503,7 +514,19 @@ export function GlassDebugMenu({
 									<span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Select:</span>
 									<select
 										value={selectedOrbId || ''}
-										onChange={(e) => onSelectOrb?.(e.target.value || null)}
+										onChange={(e) => {
+											onSelectOrb?.(e.target.value || null);
+											setIsOrbSelectorOpen(false);
+										}}
+										onFocus={() => {
+											// Freeze the orb list when dropdown opens
+											setFrozenOrbs([...orbs]);
+											setIsOrbSelectorOpen(true);
+										}}
+										onBlur={() => {
+											// Unfreeze when dropdown closes
+											setIsOrbSelectorOpen(false);
+										}}
 										style={{
 											background: 'rgba(255, 255, 255, 0.1)',
 											color: 'rgba(255, 255, 255, 0.9)',
@@ -516,7 +539,7 @@ export function GlassDebugMenu({
 										}}
 									>
 										<option value="">None</option>
-										{orbs.map((orb, i) => (
+										{displayOrbs.map((orb, i) => (
 											<option key={orb.id} value={orb.id}>
 												Orb {i + 1} ({orb.size})
 											</option>

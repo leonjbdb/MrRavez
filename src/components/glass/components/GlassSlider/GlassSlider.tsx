@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { useMobileViewport } from "@/hooks/device";
 import { useInteraction3D, useDragInteraction } from "../../hooks/interaction";
 import { useSpringAnimation } from "../../hooks/animation";
@@ -67,6 +67,17 @@ export function GlassSlider({ opacity = 1, onSlideComplete, config: configOverri
 			snapTo(target);
 		},
 	});
+
+	// Sync slider position when debug mode changes (e.g., from URL navigation)
+	// Only sync when not dragging to avoid fighting with user interaction
+	useEffect(() => {
+		if (isDragging) return;
+		const targetPosition = isDebugMode ? 1 : 0;
+		// Only update if position doesn't match debug mode state
+		if ((isDebugMode && position < 0.5) || (!isDebugMode && position > 0.5)) {
+			setPosition(targetPosition);
+		}
+	}, [isDebugMode, isDragging, position, setPosition]);
 
 	// Delayed visibility
 	const skipDelay = isDebugMode || wasActiveThisSession;

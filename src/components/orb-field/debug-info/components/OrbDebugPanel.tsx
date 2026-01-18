@@ -4,6 +4,7 @@
 // OrbDebugPanel - Debug UI for Orb System Management
 // =============================================================================
 
+import { useState } from 'react';
 import { type Orb } from '../../orb/types';
 import { DEFAULT_ORB_SPAWN_CONFIG } from '../../orb/config';
 
@@ -50,6 +51,14 @@ export function OrbDebugPanel({
 	onDeleteOrb,
 	onSizeChange,
 }: OrbDebugPanelProps) {
+	// Track when the orb selector dropdown is open
+	// When open, freeze the orbs list to prevent updates making selection impossible
+	const [isOrbSelectorOpen, setIsOrbSelectorOpen] = useState(false);
+	const [frozenOrbs, setFrozenOrbs] = useState<Orb[]>([]);
+
+	// Use frozen orbs list when dropdown is open, otherwise use real-time orbs
+	const displayOrbs = isOrbSelectorOpen ? frozenOrbs : orbs;
+
 	const handleSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const newSize = parseInt(e.target.value, 10);
 		onSizeChange?.(newSize);
@@ -107,7 +116,19 @@ export function OrbDebugPanel({
 					<span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Select:</span>
 					<select
 						value={selectedOrbId || ''}
-						onChange={(e) => onSelectOrb?.(e.target.value || null)}
+						onChange={(e) => {
+							onSelectOrb?.(e.target.value || null);
+							setIsOrbSelectorOpen(false);
+						}}
+						onFocus={() => {
+							// Freeze the orb list when dropdown opens
+							setFrozenOrbs([...orbs]);
+							setIsOrbSelectorOpen(true);
+						}}
+						onBlur={() => {
+							// Unfreeze when dropdown closes
+							setIsOrbSelectorOpen(false);
+						}}
 						style={{
 							background: 'rgba(255, 255, 255, 0.1)',
 							color: 'rgba(255, 255, 255, 0.9)',
@@ -120,7 +141,7 @@ export function OrbDebugPanel({
 						}}
 					>
 						<option value="">None</option>
-						{orbs.map((orb, i) => (
+						{displayOrbs.map((orb, i) => (
 							<option key={orb.id} value={orb.id}>
 								Orb {i + 1} ({orb.size})
 							</option>
@@ -182,8 +203,8 @@ export function OrbDebugPanel({
 					step={1}
 					value={orbSize}
 					onChange={handleSizeChange}
-					style={{ 
-						width: '100%', 
+					style={{
+						width: '100%',
 						cursor: 'pointer',
 						accentColor: 'rgba(78, 5, 6, 0.8)',
 					}}

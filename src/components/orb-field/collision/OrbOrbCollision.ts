@@ -55,23 +55,38 @@ export class OrbOrbCollision {
 
 				if (distSq < minDist * minDist) {
 					let dist: number;
-					let nx: number, ny: number, nz: number;
+					let nxCell: number, nyCell: number, nzCell: number;
 
 					// Handle zero-distance case (orbs at same position)
 					if (distSq < 0.001) {
 						// Generate random separation direction to unstick orbs
 						const randomAngle = Math.random() * Math.PI * 2;
 						const randomPhi = (Math.random() - 0.5) * Math.PI;
-						nx = Math.cos(randomAngle) * Math.cos(randomPhi);
-						ny = Math.sin(randomAngle) * Math.cos(randomPhi);
-						nz = Math.sin(randomPhi);
+						nxCell = Math.cos(randomAngle) * Math.cos(randomPhi);
+						nyCell = Math.sin(randomAngle) * Math.cos(randomPhi);
+						nzCell = Math.sin(randomPhi);
 						dist = 0.001; // Use tiny distance to prevent division by zero
 					} else {
 						dist = Math.sqrt(distSq);
-						nx = dx / dist;
-						ny = dy / dist;
-						nz = dz / dist;
+						nxCell = dx / dist;
+						nyCell = dy / dist;
+						nzCell = dz / dist;
 					}
+
+					// Convert direction from cell space back to pixel space
+					// Cell space may be non-square, so we need to scale the direction vector
+					const cellSizeXPx = vpc.cellSizeXPx;
+					const cellSizeYPx = vpc.cellSizeYPx;
+					const nxPx = nxCell * cellSizeXPx;
+					const nyPx = nyCell * cellSizeYPx;
+					// Z is in layers, keep it as-is for now (vz is in layers/s)
+					const nzPx = nzCell;
+					const lenPx = Math.sqrt(nxPx * nxPx + nyPx * nyPx + nzPx * nzPx);
+
+					// Normalized direction in pixel space for velocity updates
+					const nx = lenPx > 0.001 ? nxPx / lenPx : 0;
+					const ny = lenPx > 0.001 ? nyPx / lenPx : 0;
+					const nz = lenPx > 0.001 ? nzPx / lenPx : 0;
 
 					// Use size as mass (larger orbs have more momentum)
 					const massA = orbA.size;
@@ -89,21 +104,20 @@ export class OrbOrbCollision {
 						const separationMultiplier = 1.2 + (0.8 * overlapRatio);
 
 						// Distribute separation based on mass (smaller orbs move more)
+						// Separation is in cells, use cell-space direction to move orbs apart
 						const separationA = (overlap * massB / totalMass) * separationMultiplier;
 						const separationB = (overlap * massA / totalMass) * separationMultiplier;
 
-						// Convert back to pixel space for XY, keep Z in layers
-						const cellSizeXPx = 1 / vpc.invCellSizeXPx;
-						const cellSizeYPx = 1 / vpc.invCellSizeYPx;
-
 						// Guard against NaN propagation
-						if (isFinite(separationA) && isFinite(separationB) && isFinite(nx) && isFinite(ny) && isFinite(nz)) {
-							orbA.pxX -= nx * separationA * cellSizeXPx;
-							orbA.pxY -= ny * separationA * cellSizeYPx;
-							orbA.z -= nz * separationA;
-							orbB.pxX += nx * separationB * cellSizeXPx;
-							orbB.pxY += ny * separationB * cellSizeYPx;
-							orbB.z += nz * separationB;
+						// Use cell-space direction (nxCell, nyCell, nzCell) for position correction
+						// Then convert to pixels via cellSizeXPx/cellSizeYPx
+						if (isFinite(separationA) && isFinite(separationB) && isFinite(nxCell) && isFinite(nyCell) && isFinite(nzCell)) {
+							orbA.pxX -= nxCell * separationA * cellSizeXPx;
+							orbA.pxY -= nyCell * separationA * cellSizeYPx;
+							orbA.z -= nzCell * separationA;
+							orbB.pxX += nxCell * separationB * cellSizeXPx;
+							orbB.pxY += nyCell * separationB * cellSizeYPx;
+							orbB.z += nzCell * separationB;
 						}
 					}
 
