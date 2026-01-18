@@ -4,7 +4,7 @@
 // useParallaxOffset - Hook for parallax scroll and device tilt offset
 // =============================================================================
 
-import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { DEFAULT_PARALLAX_CONFIG, type ParallaxConfig } from '../shared/config';
 
 /**
@@ -39,7 +39,21 @@ export function useParallaxOffset(
 	config: Partial<ParallaxConfig> = {}
 ): UseParallaxOffsetReturn {
 	const fullConfig = useMemo(() => ({ ...DEFAULT_PARALLAX_CONFIG, ...config }), [config]);
-	const currentScrollOffsetRef = useRef({ x: 0, y: 0 });
+
+	// Initialize offset to correct value based on initial scroll progress
+	// Use useState to compute initial value once, then manage via ref for performance
+	const [initialOffset] = useState(() => {
+		const scrollOffset = -(scrollProgress - fullConfig.scrollOffsetReference) * fullConfig.scrollOffsetPxPerUnit;
+		const tiltOffsetX = (deviceTiltX - 0.5) * 2 * fullConfig.deviceTiltOffsetPx;
+		const tiltOffsetY = (deviceTiltY - 0.5) * 2 * fullConfig.deviceTiltOffsetPx;
+
+		return {
+			x: (isMobile ? scrollOffset : 0) + tiltOffsetX,
+			y: (isMobile ? 0 : scrollOffset) + tiltOffsetY,
+		};
+	});
+
+	const currentScrollOffsetRef = useRef(initialOffset);
 
 	// Store parameters in refs for stable callback access
 	const scrollProgressRef = useRef(scrollProgress);

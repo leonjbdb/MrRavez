@@ -21,12 +21,8 @@ export interface GridConfig {
 	// Grid Bounds (World Coordinates in cm)
 	/** Minimum X coordinate of the grid in centimeters. */
 	minXCm: number;
-	/** Maximum X coordinate of the grid in centimeters. */
-	maxXCm: number;
 	/** Minimum Y coordinate of the grid in centimeters. */
 	minYCm: number;
-	/** Maximum Y coordinate of the grid in centimeters. */
-	maxYCm: number;
 
 	// Viewport Bounds (Screen Area in cm)
 	/** Minimum X coordinate of the visible viewport in centimeters. */
