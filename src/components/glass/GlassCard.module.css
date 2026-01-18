@@ -1,0 +1,10 @@
+/* Mobile overrides using CSS custom properties */
+@media (max-width: 480px) {
+    .mobile :global(.glass-card-container),
+    .mobile :global(.glass-card-bg) {
+        border-radius: var(--glass-card-mobile-radius) !important;
+    }
+    .mobile :global(.glass-card-content) {
+        padding: var(--glass-card-mobile-padding) !important;
+    }
+}

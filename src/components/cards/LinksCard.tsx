@@ -60,7 +60,7 @@ function getIcon(iconType: string) {
  */
 export function LinksCard() {
 	return (
-		<CardTemplate title="Links" contentGap={8}>
+		<CardTemplate title="Links">
 			<div style={{
 				display: 'flex',
 				flexDirection: 'column',

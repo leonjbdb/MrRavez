@@ -19,7 +19,7 @@ function EmailIcon() {
  */
 export function ContactCard() {
 	return (
-		<CardTemplate title="Contact" contentGap={16}>
+		<CardTemplate title="Contact">
 			<div style={{
 				display: 'flex',
 				flexDirection: 'column',

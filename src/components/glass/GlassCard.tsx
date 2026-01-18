@@ -2,6 +2,7 @@
 
 import { useRef, ReactNode, useState, useEffect, useId } from "react";
 import { useDeviceOrientation } from "@/hooks/useDeviceOrientation";
+import styles from "./GlassCard.module.css";
 
 interface GlassCardProps {
 	children?: ReactNode;
@@ -29,19 +30,6 @@ interface GlassCardProps {
 	/** 3D wheel depth translation (px) for mobile carousel */
 	wheelTranslateZ?: number;
 }
-
-// Global styles for mobile overrides using CSS custom properties
-const globalMobileStyles = `
-    @media (max-width: 480px) {
-        .glass-card-mobile .glass-card-container,
-        .glass-card-mobile .glass-card-bg {
-            border-radius: var(--glass-card-mobile-radius) !important;
-        }
-        .glass-card-mobile .glass-card-content {
-            padding: var(--glass-card-mobile-padding) !important;
-        }
-    }
-`;
 
 export function GlassCard({
 	children,
@@ -347,7 +335,7 @@ export function GlassCard({
 		<div
 			ref={cardRef}
 			data-glass-card-id={cardId}
-			className={`${hasMobileOverrides ? 'glass-card-mobile' : ''} ${className || ''}`.trim() || undefined}
+			className={`${hasMobileOverrides ? styles.mobile : ''} ${className || ''}`.trim() || undefined}
 			style={{
 				position: "relative",
 				perspective: "1200px",
@@ -364,9 +352,6 @@ export function GlassCard({
 				...styleWithoutTransform,
 			}}
 		>
-			{hasMobileOverrides && (
-				<style suppressHydrationWarning dangerouslySetInnerHTML={{ __html: globalMobileStyles }} />
-			)}
 			{/* Glass container with 3D tilt */}
 			<div
 				className="glass-card-container"
