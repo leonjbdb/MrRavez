@@ -92,3 +92,5 @@ export interface TouchStartData {
 export interface ContactVisibilitySelector {
 	entryProgress: number;
 }
+
+
