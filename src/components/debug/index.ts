@@ -1,4 +1,5 @@
 export { DebugProvider, useDebug, useDebugSafe, type DebugState } from "./DebugContext";
 export { DebugMenu } from "./DebugMenu";
-export { GlassDebugMenu } from "./GlassDebugMenu";
+export { GlassDebugMenu } from "./GlassDebugMenu/index";
+export type { GlassDebugMenuProps } from "./GlassDebugMenu/index";
 export { useDebugUrlSync, getInitialSectionFromDebugUrl } from "./useDebugUrlSync";
