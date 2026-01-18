@@ -386,25 +386,22 @@ export function GlassCard({
 						border: "1px solid rgba(255, 255, 255, 0.15)",
 						zIndex: 0,
 						pointerEvents: "none",
+						overflow: "hidden", // Ensures children like the highlight line are clipped by border radius
 					}}
-				/>
-
-				{/* Top edge highlight - positioned inside the border radius */}
-				<div
-					style={{
-						position: "absolute",
-						top: 1,
-						// Use fixed pixel values that stay inside the border radius on mobile
-						// borderRadius of 60px on desktop, 40px on mobile - stay inside the curve
-						left: Math.max(borderRadius * 0.4, 24),
-						right: Math.max(borderRadius * 0.4, 24),
-						height: 1,
-						background: "linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 20%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.5) 80%, transparent 100%)",
-						borderRadius: borderRadius / 2,
-						zIndex: 2,
-						pointerEvents: "none",
-					}}
-				/>
+				>
+					{/* Top edge highlight - now clipped by parent overflow:hidden */}
+					<div
+						style={{
+							position: "absolute",
+							top: 0,
+							left: 0,
+							right: 0,
+							height: 1,
+							background: "linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 20%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.5) 80%, transparent 100%)",
+							zIndex: 2,
+						}}
+					/>
+				</div>
 
 				{/* Content layer */}
 				<div
