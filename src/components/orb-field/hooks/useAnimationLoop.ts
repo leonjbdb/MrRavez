@@ -64,7 +64,6 @@ export function useAnimationLoop({
 	const revealDurationRef = useRef(revealDuration);
 
 	useEffect(() => {
-		console.log('[useAnimationLoop] onLoop ref updated');
 		onLoopRef.current = onLoop;
 	}, [onLoop]);
 
@@ -125,7 +124,6 @@ export function useAnimationLoop({
 	// Separate cleanup effect that only runs on unmount
 	useEffect(() => {
 		return () => {
-			console.log('[useAnimationLoop] Unmount cleanup');
 			animatorRef.current?.stop();
 			if (loopIdRef.current) cancelAnimationFrame(loopIdRef.current);
 			hasAnimatedRef.current = false;

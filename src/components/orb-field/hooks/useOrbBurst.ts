@@ -67,7 +67,6 @@ export function useOrbBurst(params: UseOrbBurstParams): UseOrbBurstReturn {
 	}, [windowSize]);
 
 	useEffect(() => {
-		console.log('[useOrbBurst] EFFECT - triggerBurst:', triggerBurst, 'hasBurst:', hasBurstRef.current);
 		if (!triggerBurst || hasBurstRef.current) return;
 
 		const checkAndBurst = () => {

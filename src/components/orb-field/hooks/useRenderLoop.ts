@@ -267,9 +267,6 @@ export function useRenderLoop(
 		styleConfigRef,
 	]);
 
-	// Log when runLoop is recreated
-	console.log('[useRenderLoop] runLoop created');
-
 	return {
 		runLoop,
 	};

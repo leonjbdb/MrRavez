@@ -53,7 +53,6 @@ export function useEventHandlers(): UseEventHandlersReturn {
 				if (prev.width === width && prev.height === height) {
 					return prev; // Return same object reference
 				}
-				console.log('[useEventHandlers] windowSize changed:', width, height);
 				return { width, height };
 			});
 		};

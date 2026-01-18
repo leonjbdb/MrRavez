@@ -49,8 +49,6 @@ export function useGridInitialization(params: UseGridInitializationParams): UseG
 	useEffect(() => {
 		if (windowWidth === 0) return;
 
-		console.log('[useGridInitialization] Creating new grid for window:', windowWidth, windowHeight);
-
 		const config = GridConfigFactory.create(window, {
 			targetCellSizeCm: isMobile ? 0.25 : 0.5,
 		});
